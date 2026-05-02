@@ -1,29 +1,43 @@
 import type { CSSProperties } from "react";
-import { Crown, Lock, Palette, Play, Radio, Sparkles, User, Wand2, Zap } from "lucide-react";
-import { SNAKE_SKINS } from "../../../shared/constants";
+import { Crown, Palette, Play, Radio, User, Zap } from "lucide-react";
+import { ROPE_ACCESSORIES, SNAKE_SKINS } from "../../../shared/constants";
 
 type MainMenuProps = {
   name: string;
   skinId: string;
   hatId: string;
+  ropeAccessoryId: string;
   onNameChange: (name: string) => void;
   onSkinChange: (skinId: string) => void;
   onHatChange: (hatId: string) => void;
+  onRopeAccessoryChange: (id: string) => void;
   onStart: () => void;
 };
 
 const HAT_OPTIONS = [
-  { id: "none", name: "None", mark: "OFF" },
-  { id: "crown", name: "Crown", mark: "I" },
-  { id: "halo", name: "Halo", mark: "O" },
-  { id: "visor", name: "Visor", mark: "V" }
+  { id: "none",   name: "None",  mark: "—" },
+  { id: "crown",  name: "Crown", mark: "👑" },
+  { id: "halo",   name: "Halo",  mark: "○" },
+  { id: "visor",  name: "Visor", mark: "◧" }
 ] as const;
+
+const ROPE_EMOJI: Record<string, string> = {
+  none:    "—",
+  skull:   "☠️",
+  star:    "⭐",
+  diamond: "💎",
+  bolt:    "⚡",
+  fire:    "🔥",
+  eye:     "👁️",
+  heart:   "❤️"
+};
 
 const PREVIEW_SEGMENTS = Array.from({ length: 10 }, (_, index) => index);
 
-export function MainMenu({ name, skinId, hatId, onNameChange, onSkinChange, onHatChange, onStart }: MainMenuProps) {
+export function MainMenu({ name, skinId, hatId, ropeAccessoryId, onNameChange, onSkinChange, onHatChange, onRopeAccessoryChange, onStart }: MainMenuProps) {
   const selectedSkin = SNAKE_SKINS.find((skin) => skin.id === skinId) ?? SNAKE_SKINS[0];
   const selectedHat = HAT_OPTIONS.find((hat) => hat.id === hatId) ?? HAT_OPTIONS[0];
+  const selectedRope = ROPE_ACCESSORIES.find((acc) => acc.id === ropeAccessoryId) ?? ROPE_ACCESSORIES[0];
   const previewStyle = {
     "--skin-color": selectedSkin.color,
     "--skin-accent": selectedSkin.accent,
@@ -57,7 +71,10 @@ export function MainMenu({ name, skinId, hatId, onNameChange, onSkinChange, onHa
 
             <div className="menu-loadout-summary">
               <span>{selectedSkin.name}</span>
-              <b>{selectedHat.name}</b>
+              <b>
+                {selectedHat.id !== "none" ? selectedHat.name : "No hat"}
+                {selectedRope.id !== "none" ? ` · ${selectedRope.name}` : ""}
+              </b>
             </div>
 
             <button className="menu-start" type="button" onClick={onStart}>
@@ -79,6 +96,11 @@ export function MainMenu({ name, skinId, hatId, onNameChange, onSkinChange, onHa
                 </b>
               </div>
               {selectedHat.id !== "none" ? <em>{selectedHat.mark}</em> : null}
+              {selectedRope.id !== "none" ? (
+                <div className="preview-rope-item" aria-hidden="true">
+                  {ROPE_EMOJI[selectedRope.id]}
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -104,7 +126,7 @@ export function MainMenu({ name, skinId, hatId, onNameChange, onSkinChange, onHa
 
             <div className="cosmetic-header">
               <Crown size={18} fill="currentColor" />
-              <span>Hat Locker</span>
+              <span>Hat</span>
             </div>
             <div className="hat-options">
               {HAT_OPTIONS.map((hat) => (
@@ -121,17 +143,23 @@ export function MainMenu({ name, skinId, hatId, onNameChange, onSkinChange, onHa
               ))}
             </div>
 
-            <div className="future-slots" aria-label="Future cosmetic slots">
-              <span>
-                <Wand2 size={15} />
-                Trail FX
-                <Lock size={14} />
-              </span>
-              <span>
-                <Sparkles size={15} />
-                Nameplate
-                <Lock size={14} />
-              </span>
+            <div className="cosmetic-header">
+              <span>🪢 Rope Item</span>
+              <span className="cosmetic-badge-new">NEW</span>
+            </div>
+            <div className="rope-options">
+              {ROPE_ACCESSORIES.map((acc) => (
+                <button
+                  className={acc.id === ropeAccessoryId ? "rope-card selected" : "rope-card"}
+                  key={acc.id}
+                  type="button"
+                  onClick={() => onRopeAccessoryChange(acc.id)}
+                  aria-label={acc.name}
+                >
+                  <span>{ROPE_EMOJI[acc.id]}</span>
+                  <b>{acc.name}</b>
+                </button>
+              ))}
             </div>
           </section>
         </div>

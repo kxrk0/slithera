@@ -13,8 +13,9 @@ export default function App() {
   const [name, setName] = useState("You");
   const [skinId, setSkinId] = useState<string>(SNAKE_SKINS[0].id);
   const [hatId, setHatId] = useState("none");
+  const [ropeAccessoryId, setRopeAccessoryId] = useState("none");
   const [perf, setPerf] = useState({ fps: 0, renderer: "webgl" });
-  const profile = useMemo(() => ({ name: name.trim() || "You", skinId }), [name, skinId]);
+  const profile = useMemo(() => ({ name: name.trim() || "You", skinId, ropeAccessoryId }), [name, skinId, ropeAccessoryId]);
   const { status, playerId, snapshot, latency, sendInput, respawn } = useGameClient(started, profile);
   const player = useMemo(() => snapshot?.players.find((item) => item.id === playerId), [snapshot, playerId]);
 
@@ -50,9 +51,11 @@ export default function App() {
           name={name}
           skinId={skinId}
           hatId={hatId}
+          ropeAccessoryId={ropeAccessoryId}
           onNameChange={setName}
           onSkinChange={setSkinId}
           onHatChange={setHatId}
+          onRopeAccessoryChange={setRopeAccessoryId}
           onStart={() => {
             setStarted(true);
             setPaused(false);
