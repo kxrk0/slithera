@@ -1,0 +1,181 @@
+<h2>Ana Menü Yeniden Tasarımı</h2>
+<p class="subtitle">Rope Accessory slotu aktif, daha geniş kozmetik paneli, yılan önizlemesi güncellendi</p>
+
+<div class="mockup" style="margin-top:1.5rem;">
+  <div class="mockup-header">Yeni Ana Menü — Taslak</div>
+  <div class="mockup-body" style="background:#030b14; padding:0; overflow:hidden; min-height:420px;">
+    <!-- Simulated menu -->
+    <div style="display:grid; grid-template-rows:auto 1fr; height:100%;">
+
+      <!-- Topbar -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid rgba(34,216,255,0.2);">
+        <div style="display:flex; align-items:baseline; gap:14px;">
+          <span style="font-size:36px; font-weight:950; text-shadow:0 0 20px rgba(34,216,255,0.8); letter-spacing:1px;">SLITHERA</span>
+          <span style="color:#22d8ff; font-size:12px; font-weight:900; text-transform:uppercase;">Arena Loadout</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span style="background:rgba(41,233,155,0.15); border:1px solid rgba(41,233,155,0.4); border-radius:20px; padding:4px 12px; font-size:12px; color:#29e99b; font-weight:800;">● Live Arena</span>
+        </div>
+      </div>
+
+      <!-- Main grid: 3 column -->
+      <div style="display:grid; grid-template-columns:0.7fr 1fr 1.3fr; gap:12px; padding:16px 20px; align-items:start;">
+
+        <!-- Col 1: Profile & Start -->
+        <div style="background:rgba(1,8,18,0.7); border:1px solid rgba(34,216,255,0.25); border-radius:10px; padding:16px; display:grid; gap:12px;">
+          <div style="color:#22d8ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px;">👤 Player Name</div>
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(34,216,255,0.35); border-radius:8px; padding:10px 14px; font-size:20px; font-weight:900; color:white;">You</div>
+
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px; margin-top:4px;">
+            <div style="font-size:20px; font-weight:950; color:#f0f8ff; line-height:1.2;">Cyan Core</div>
+            <div style="font-size:12px; font-weight:900; color:#22d8ff; margin-top:4px;">Skull · None hat</div>
+          </div>
+
+          <button style="margin-top:auto; background:linear-gradient(90deg,rgba(34,216,255,0.35),rgba(10,152,182,0.9)); border:1px solid rgba(34,216,255,0.8); border-radius:8px; color:white; font-size:18px; font-weight:950; padding:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+            ▶ Enter Arena ⚡
+          </button>
+        </div>
+
+        <!-- Col 2: Preview -->
+        <div style="background:rgba(1,8,18,0.7); border:1px solid rgba(34,216,255,0.25); border-radius:10px; overflow:hidden; min-height:360px; display:grid; place-items:center; position:relative;">
+          <div style="position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(34,216,255,0.12), transparent 55%)"></div>
+          <svg width="200" height="200" viewBox="0 0 200 200" style="position:relative; z-index:1;">
+            <!-- Curved snake body -->
+            <circle cx="40" cy="140" r="9" fill="#22d8ff" opacity="0.72"/>
+            <circle cx="56" cy="132" r="10" fill="#22d8ff" opacity="0.76"/>
+            <circle cx="74" cy="124" r="11" fill="#22d8ff" opacity="0.80"/>
+            <circle cx="92" cy="115" r="12" fill="#22d8ff" opacity="0.85"/>
+            <circle cx="108" cy="106" r="12.5" fill="#22d8ff" opacity="0.88"/>
+            <circle cx="122" cy="95" r="12.5" fill="#22d8ff" opacity="0.91"/>
+            <circle cx="134" cy="83" r="13" fill="#22d8ff" opacity="0.94"/>
+            <circle cx="144" cy="72" r="13" fill="#22d8ff" opacity="0.97"/>
+            <!-- Head -->
+            <circle cx="152" cy="60" r="16" fill="#22d8ff"/>
+            <circle cx="148" cy="55" r="5" fill="#031018"/>
+            <circle cx="158" cy="55" r="5" fill="#031018"/>
+            <circle cx="149" cy="54" r="1.6" fill="white"/>
+            <circle cx="159" cy="54" r="1.6" fill="white"/>
+            <!-- Rope -->
+            <line x1="143" y1="68" x2="118" y2="95" stroke="rgba(200,220,240,0.5)" stroke-width="1.8"/>
+            <!-- Accessory: skull -->
+            <circle cx="110" cy="102" r="12" fill="#1a2030" stroke="rgba(200,220,240,0.3)" stroke-width="1.5"/>
+            <circle cx="107" cy="100" r="3" fill="rgba(230,240,255,0.85)"/>
+            <circle cx="113" cy="100" r="3" fill="rgba(230,240,255,0.85)"/>
+            <rect x="105.5" y="103.5" width="2.5" height="3.5" rx="0.8" fill="rgba(230,240,255,0.7)"/>
+            <rect x="109" y="103.5" width="2.5" height="3.5" rx="0.8" fill="rgba(230,240,255,0.7)"/>
+            <rect x="112.5" y="103.5" width="2.5" height="3.5" rx="0.8" fill="rgba(230,240,255,0.7)"/>
+          </svg>
+          <div style="position:absolute; bottom:12px; font-size:11px; color:#4a7a8a; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Preview</div>
+        </div>
+
+        <!-- Col 3: Cosmetics -->
+        <div style="background:rgba(1,8,18,0.7); border:1px solid rgba(34,216,255,0.25); border-radius:10px; padding:16px; display:grid; gap:14px; align-content:start;">
+
+          <!-- Snake Skin -->
+          <div style="color:#22d8ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px;">🎨 Snake Skin</div>
+          <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px;">
+            <div style="background:rgba(34,216,255,0.12); border:1px solid rgba(34,216,255,0.7); border-radius:8px; padding:8px; text-align:center; cursor:pointer;">
+              <div style="width:100%; height:14px; border-radius:999px; background:#22d8ff; margin-bottom:6px;"></div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Cyan</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px; text-align:center; cursor:pointer;">
+              <div style="width:100%; height:14px; border-radius:999px; background:#ff6a43; margin-bottom:6px;"></div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Ember</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px; text-align:center; cursor:pointer;">
+              <div style="width:100%; height:14px; border-radius:999px; background:#a6ff3f; margin-bottom:6px;"></div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Venom</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px; text-align:center; cursor:pointer;">
+              <div style="width:100%; height:14px; border-radius:999px; background:#b15cff; margin-bottom:6px;"></div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Void</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px; text-align:center; cursor:pointer;">
+              <div style="width:100%; height:14px; border-radius:999px; background:#ffd24d; margin-bottom:6px;"></div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Solar</div>
+            </div>
+          </div>
+
+          <!-- Hat -->
+          <div style="color:#22d8ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px; margin-top:4px;">👑 Hat</div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">—</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">None</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">👑</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Crown</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">○</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Halo</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">◧</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Visor</div>
+            </div>
+          </div>
+
+          <!-- Rope Accessory — NEW, ACTIVE -->
+          <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+            <div style="color:#22d8ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px;">🪢 Rope Item</div>
+            <span style="background:rgba(34,216,255,0.2); border:1px solid rgba(34,216,255,0.5); border-radius:20px; padding:2px 8px; font-size:10px; color:#22d8ff; font-weight:900;">NEW</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">—</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">None</div>
+            </div>
+            <div style="background:rgba(34,216,255,0.1); border:1px solid rgba(34,216,255,0.6); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">☠️</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Skull</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">⭐</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Star</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">💎</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Diamond</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">⚡</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Bolt</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">🔥</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Fire</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">👁️</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Eye</div>
+            </div>
+            <div style="background:rgba(3,14,23,0.7); border:1px solid rgba(182,220,240,0.15); border-radius:8px; padding:8px 4px; text-align:center; cursor:pointer;">
+              <div style="font-size:16px; margin-bottom:4px;">❤️</div>
+              <div style="font-size:10px; color:#c4e8ff; font-weight:800;">Heart</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top:1.5rem;">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Onayla — Plan yaz</h3>
+      <p>Bu tasarımla devam et, implementation planı hazırla</p>
+    </div>
+  </div>
+  <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+    <div class="letter">~</div>
+    <div class="content">
+      <h3>Değişiklik var</h3>
+      <p>Terminalde söyle, düzelteyim</p>
+    </div>
+  </div>
+</div>
