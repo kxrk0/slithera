@@ -5,6 +5,7 @@ import {
   MAX_SEGMENTS,
   MIN_ACTIVE_SNAKES,
   MIN_SCORE,
+  ROPE_ACCESSORIES,
   START_LENGTH,
   TAIL_GROW_SEGMENTS_PER_SECOND,
   TICK_RATE
@@ -129,6 +130,20 @@ describe("authoritative simulation", () => {
     expect(killer.kills).toBe(1);
     expect(killer.score).toBe(killerScore);
     expect(world.food.size).toBeGreaterThan(foodBefore);
+  });
+
+  it("ROPE_ACCESSORIES has none as first entry and includes skull/star/diamond", () => {
+    const ids = ROPE_ACCESSORIES.map((a) => a.id);
+    expect(ids[0]).toBe("none");
+    expect(ids).toContain("skull");
+    expect(ids).toContain("star");
+    expect(ids).toContain("diamond");
+  });
+
+  it("createPlayer stores ropeAccessoryId on the player state", () => {
+    const world = createWorld(99);
+    const player = createPlayer(world, "rope_test", "RopePlayer", false, "cyan-core", "skull");
+    expect(player.ropeAccessoryId).toBe("skull");
   });
 
   it("keeps the tail on the travelled path instead of sliding sideways", () => {

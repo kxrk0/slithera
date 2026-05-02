@@ -323,7 +323,7 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   graphics.circle(head.x + nose.x - eyeOffset.x + 1 * growth, head.y + nose.y - eyeOffset.y - 1 * growth, 1.3 * growth).fill("#ffffff");
 
   // Rope accessory placeholder — rope param is used in Task 5
-  const ropeAccessoryId = (player as PlayerState & { ropeAccessoryId?: string }).ropeAccessoryId;
+  const ropeAccessoryId = player.ropeAccessoryId;
   if (rope && ropeAccessoryId && ropeAccessoryId !== "none") {
     const attachX = head.x - Math.cos(player.heading) * 18;
     const attachY = head.y - Math.sin(player.heading) * 18;
@@ -400,6 +400,7 @@ function smoothPlayers(cache: Map<string, RenderedPlayer>, targets: PlayerState[
     current.color = target.color;
     current.accent = target.accent;
     current.skinId = target.skinId;
+    current.ropeAccessoryId = target.ropeAccessoryId;
     const correctionCount = Math.min(current.segments.length, target.segments.length);
     for (let index = 0; index < correctionCount; index += 1) {
       const tailT = index / Math.max(1, current.segments.length - 1);

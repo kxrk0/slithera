@@ -3,7 +3,7 @@ import type { ClientInput, ServerMessage, ServerSnapshot } from "../../../shared
 
 type ConnectionStatus = "connecting" | "online" | "reconnecting" | "offline";
 
-export function useGameClient(enabled: boolean, profile: { name: string; skinId: string }) {
+export function useGameClient(enabled: boolean, profile: { name: string; skinId: string; ropeAccessoryId?: string }) {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [playerId, setPlayerId] = useState<string>();
   const [snapshot, setSnapshot] = useState<ServerSnapshot>();
@@ -25,7 +25,7 @@ export function useGameClient(enabled: boolean, profile: { name: string; skinId:
       socketRef.current = socket;
 
       socket.addEventListener("open", () => {
-        socket.send(JSON.stringify({ type: "join", name: profile.name, skinId: profile.skinId }));
+        socket.send(JSON.stringify({ type: "join", name: profile.name, skinId: profile.skinId, ropeAccessoryId: profile.ropeAccessoryId }));
         setStatus("online");
       });
 
@@ -72,7 +72,7 @@ export function useGameClient(enabled: boolean, profile: { name: string; skinId:
       if (reconnectTimer) window.clearTimeout(reconnectTimer);
       socketRef.current?.close();
     };
-  }, [enabled, profile.name, profile.skinId]);
+  }, [enabled, profile.name, profile.skinId, profile.ropeAccessoryId]);
 
   const sendInput = useCallback((input: ClientInput) => {
     lastInputRef.current = input;

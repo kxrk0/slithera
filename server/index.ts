@@ -67,7 +67,7 @@ wss.on("connection", (socket) => {
 
     if (message.type === "join") {
       const id = `human_${randomUUID()}`;
-      const player = createPlayer(world, id, message.name, false, message.skinId);
+      const player = createPlayer(world, id, message.name, false, message.skinId, message.ropeAccessoryId);
       sockets.set(socket, player.id);
       send(socket, { type: "welcome", id: player.id, snapshot: makeSnapshot(world, player.id) });
       return;

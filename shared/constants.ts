@@ -86,3 +86,16 @@ export const BOT_NAMES = [
   "PixelPython",
   "IonViper"
 ] as const;
+
+export const ROPE_ACCESSORIES = [
+  { id: "none",    name: "None"    },
+  { id: "skull",   name: "Skull"   },
+  { id: "star",    name: "Star"    },
+  { id: "diamond", name: "Diamond" },
+  { id: "bolt",    name: "Bolt"    },
+  { id: "fire",    name: "Fire"    },
+  { id: "eye",     name: "Eye"     },
+  { id: "heart",   name: "Heart"   }
+] as const;
+
+export type RopeAccessoryId = typeof ROPE_ACCESSORIES[number]["id"];

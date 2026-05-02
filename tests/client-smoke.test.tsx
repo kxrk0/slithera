@@ -24,7 +24,8 @@ const snapshot: ServerSnapshot = {
       targetHeading: 0,
       segments: [{ x: 1000, y: 900 }],
       segmentProgress: 0,
-      kills: 0
+      kills: 0,
+      ropeAccessoryId: "none"
     }
   ],
   food: [{ id: "food_1", x: 700, y: 600, color: "#ffd24d", value: 2, driftAngle: 0, driftSpeed: 0 }],
