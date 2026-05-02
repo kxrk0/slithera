@@ -490,7 +490,11 @@ function approachRenderedLength(player: RenderedPlayer, target: PlayerState, dt:
   if (player.segments.length < targetLength) {
     player.visualSegmentProgress = Math.max(player.visualSegmentProgress, target.segmentProgress, 0) + TAIL_GROW_SEGMENTS_PER_SECOND * dt;
     while (player.segments.length < targetLength && player.visualSegmentProgress >= 1) {
-      player.segments.push(extendRenderedTail(player.segments, SEGMENT_SPACING, player.heading));
+      const serverPos = target.segments[player.segments.length];
+      const newSeg = serverPos
+        ? { x: serverPos.x, y: serverPos.y }
+        : extendRenderedTail(player.segments, SEGMENT_SPACING, player.heading);
+      player.segments.push(newSeg);
       player.visualSegmentProgress -= 1;
     }
     player.visualSegmentProgress = Math.min(player.visualSegmentProgress, 0.98);
