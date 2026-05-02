@@ -331,10 +331,10 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   // Eyes
   const eyeOffset = { x: Math.cos(player.heading + Math.PI / 2) * 6 * growth, y: Math.sin(player.heading + Math.PI / 2) * 6 * growth };
   const nose = { x: Math.cos(player.heading) * 8 * growth, y: Math.sin(player.heading) * 8 * growth };
-  graphics.circle(head.x + nose.x + eyeOffset.x, head.y + nose.y + eyeOffset.y, 4 * growth).fill("#031018");
-  graphics.circle(head.x + nose.x - eyeOffset.x, head.y + nose.y - eyeOffset.y, 4 * growth).fill("#031018");
-  graphics.circle(head.x + nose.x + eyeOffset.x + 1 * growth, head.y + nose.y + eyeOffset.y - 1 * growth, 1.3 * growth).fill("#ffffff");
-  graphics.circle(head.x + nose.x - eyeOffset.x + 1 * growth, head.y + nose.y - eyeOffset.y - 1 * growth, 1.3 * growth).fill("#ffffff");
+  graphics.circle(head.x + nose.x + eyeOffset.x, head.y + nose.y + eyeOffset.y, 4 * growth).fill(0x031018);
+  graphics.circle(head.x + nose.x - eyeOffset.x, head.y + nose.y - eyeOffset.y, 4 * growth).fill(0x031018);
+  graphics.circle(head.x + nose.x + eyeOffset.x + 1 * growth, head.y + nose.y + eyeOffset.y - 1 * growth, 1.3 * growth).fill(0xffffff);
+  graphics.circle(head.x + nose.x - eyeOffset.x + 1 * growth, head.y + nose.y - eyeOffset.y - 1 * growth, 1.3 * growth).fill(0xffffff);
 
   if (rope && player.ropeAccessoryId && player.ropeAccessoryId !== "none") {
     const attachX = head.x - Math.cos(player.heading) * 18;
@@ -631,12 +631,14 @@ function updateRopeState(states: Map<string, RopeState>, player: PlayerState, dt
 
   const springK = 14;
   const damping = 0.84;
-  const fx = (targetX - state.x) * springK * dt;
-  const fy = (targetY - state.y) * springK * dt;
-  state.vx = (state.vx + fx) * damping;
-  state.vy = (state.vy + fy) * damping;
-  state.x += state.vx * dt;
-  state.y += state.vy * dt;
+  const safeDt = Math.min(dt, 0.05);
+  const dtDamping = Math.pow(damping, safeDt * 60);
+  const fx = (targetX - state.x) * springK * safeDt;
+  const fy = (targetY - state.y) * springK * safeDt;
+  state.vx = (state.vx + fx) * dtDamping;
+  state.vy = (state.vy + fy) * dtDamping;
+  state.x += state.vx * safeDt;
+  state.y += state.vy * safeDt;
 }
 
 function drawRopeAccessory(graphics: Graphics, accessoryId: string, cx: number, cy: number, accent: number): void {
