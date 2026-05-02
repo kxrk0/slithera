@@ -201,7 +201,7 @@ export function PixiGame({ snapshot, playerId, paused, onInput, onPerf }: PixiGa
 
         drawDeathEffects(snakes, deathEffects, dt, view);
         const sorted = [...renderedPlayers].sort((a, b) => a.segments.length - b.segments.length);
-        for (const player of sorted) drawSnake(snakes, labels, player, player.id === playerIdRef.current, view);
+        for (const player of sorted) drawSnake(snakes, labels, player, player.id === playerIdRef.current, view, undefined);
       }
 
       overlay.clear();
@@ -283,23 +283,38 @@ function drawArena(graphics: Graphics) {
   graphics.rect(18, 18, WORLD_WIDTH - 36, WORLD_HEIGHT - 36).stroke({ color: 0x12d8ff, alpha: 0.32, width: 3 });
 }
 
-function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, you: boolean, view: WorldBounds) {
+function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, you: boolean, view: WorldBounds, rope?: { x: number; y: number; vx: number; vy: number }): void {
   if (!player.alive || player.segments.length === 0) return;
   const color = Number.parseInt(player.color.slice(1), 16);
   const accent = Number.parseInt(player.accent.slice(1), 16);
   const growth = snakeSizeScale(player);
   const displaySegments = segmentsWithGrowingTail(player);
-  const path = sampledPath(displaySegments, displaySegments.length > 180 ? 3 : displaySegments.length > 120 ? 2 : 1);
-  const bodyWidth = 23 * growth;
-  drawSmoothStroke(graphics, path, bodyWidth + 8, 0x061018, you ? 0.82 : 0.68);
-  drawSmoothStroke(graphics, path, bodyWidth + 3, color, you ? 0.96 : 0.86);
-  drawSmoothStroke(graphics, path, bodyWidth * 0.58, accent, you ? 0.16 : 0.11);
-  drawTailCap(graphics, displaySegments[displaySegments.length - 1], bodyWidth, color, accent, you);
+  const segCount = displaySegments.length;
+  const taperingStart = Math.floor(segCount * 0.8);
+  const bodyRadius = 14 * growth;
 
-  const head = player.segments[0];
+  // Draw body circles tail-first so head renders on top
+  for (let i = segCount - 1; i >= 1; i -= 1) {
+    const seg = displaySegments[i];
+    if (!insideBounds(seg, view)) continue;
+    let radius: number;
+    if (i >= taperingStart) {
+      const tailProg = (i - taperingStart) / Math.max(1, segCount - 1 - taperingStart);
+      radius = (14 - tailProg * 5) * growth;
+    } else {
+      radius = bodyRadius;
+    }
+    graphics.circle(seg.x, seg.y, radius).fill({ color, alpha: 1 });
+  }
+
+  // Head
+  const head = displaySegments[0];
   if (!insideBounds(head, view)) return;
-  graphics.circle(head.x, head.y, 19 * growth).fill({ color, alpha: 1 });
-  graphics.circle(head.x - 5 * growth, head.y - 7 * growth, 6.2 * growth).fill({ color: accent, alpha: 0.22 });
+  const headRadius = 16 * growth;
+  graphics.circle(head.x, head.y, headRadius).fill({ color, alpha: 1 });
+  // Shimmer highlight
+  graphics.circle(head.x - headRadius * 0.28, head.y - headRadius * 0.28, headRadius * 0.32).fill({ color: accent, alpha: 0.22 });
+  // Eyes
   const eyeOffset = { x: Math.cos(player.heading + Math.PI / 2) * 6 * growth, y: Math.sin(player.heading + Math.PI / 2) * 6 * growth };
   const nose = { x: Math.cos(player.heading) * 8 * growth, y: Math.sin(player.heading) * 8 * growth };
   graphics.circle(head.x + nose.x + eyeOffset.x, head.y + nose.y + eyeOffset.y, 4 * growth).fill("#031018");
@@ -307,15 +322,19 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   graphics.circle(head.x + nose.x + eyeOffset.x + 1 * growth, head.y + nose.y + eyeOffset.y - 1 * growth, 1.3 * growth).fill("#ffffff");
   graphics.circle(head.x + nose.x - eyeOffset.x + 1 * growth, head.y + nose.y - eyeOffset.y - 1 * growth, 1.3 * growth).fill("#ffffff");
 
+  // Rope accessory placeholder — rope param is used in Task 5
+  const ropeAccessoryId = (player as PlayerState & { ropeAccessoryId?: string }).ropeAccessoryId;
+  if (rope && ropeAccessoryId && ropeAccessoryId !== "none") {
+    const attachX = head.x - Math.cos(player.heading) * 18;
+    const attachY = head.y - Math.sin(player.heading) * 18;
+    graphics.moveTo(attachX, attachY).lineTo(rope.x, rope.y).stroke({ color: 0xc8dce8, alpha: 0.5, width: 1.8 });
+  }
+
+  // Label
   if (you) {
     const label = new Text({
-      text: you ? "You" : player.name,
-      style: {
-        fill: you ? "#ffffff" : "#c9d8e5",
-        fontFamily: "Inter, system-ui, sans-serif",
-        fontSize: 18,
-        fontWeight: you ? "700" : "500"
-      }
+      text: "You",
+      style: { fill: "#ffffff", fontFamily: "Inter, system-ui, sans-serif", fontSize: 18, fontWeight: "700" }
     });
     label.anchor.set(0.5);
     label.position.set(head.x, head.y - 42);
@@ -341,33 +360,6 @@ function desiredRenderSegmentCount(score: number): number {
   return Math.min(MAX_SEGMENTS, Math.max(START_LENGTH, START_LENGTH + Math.floor(Math.max(0, score - MIN_SCORE) / SCORE_PER_SEGMENT)));
 }
 
-function sampledPath(segments: Vec2[], stride: number): Vec2[] {
-  const points: Vec2[] = [];
-  for (let index = segments.length - 1; index >= 0; index -= stride) {
-    points.push(segments[index]);
-  }
-  if (points[points.length - 1] !== segments[0]) points.push(segments[0]);
-  return points;
-}
-
-function drawSmoothStroke(graphics: Graphics, points: Vec2[], width: number, color: number, alpha: number): void {
-  if (points.length < 2) return;
-  graphics.moveTo(points[0].x, points[0].y);
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const current = points[index];
-    const next = points[index + 1];
-    graphics.quadraticCurveTo(current.x, current.y, (current.x + next.x) / 2, (current.y + next.y) / 2);
-  }
-  const last = points[points.length - 1];
-  graphics.lineTo(last.x, last.y).stroke({ color, alpha, width, cap: "round", join: "round", miterLimit: 1 });
-}
-
-function drawTailCap(graphics: Graphics, tail: Vec2, width: number, color: number, accent: number, you: boolean): void {
-  const radius = width * 0.52;
-  graphics.circle(tail.x, tail.y, radius + 4).fill({ color: 0x061018, alpha: you ? 0.76 : 0.62 });
-  graphics.circle(tail.x, tail.y, radius).fill({ color, alpha: you ? 0.96 : 0.82 });
-  graphics.circle(tail.x - radius * 0.16, tail.y - radius * 0.18, radius * 0.28).fill({ color: accent, alpha: 0.12 });
-}
 
 function smoothPlayers(cache: Map<string, RenderedPlayer>, targets: PlayerState[], dt: number, deathEffects: DeathEffect[]): RenderedPlayer[] {
   const targetIds = new Set(targets.map((player) => player.id));
