@@ -298,7 +298,6 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
 
   const head = player.segments[0];
   if (!insideBounds(head, view)) return;
-  graphics.circle(head.x, head.y, 22.5 * growth).fill({ color: 0x061018, alpha: 0.82 });
   graphics.circle(head.x, head.y, 19 * growth).fill({ color, alpha: 1 });
   graphics.circle(head.x - 5 * growth, head.y - 7 * growth, 6.2 * growth).fill({ color: accent, alpha: 0.22 });
   const eyeOffset = { x: Math.cos(player.heading + Math.PI / 2) * 6 * growth, y: Math.sin(player.heading + Math.PI / 2) * 6 * growth };

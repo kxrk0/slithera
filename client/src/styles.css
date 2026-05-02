@@ -55,6 +55,7 @@ button {
 .pixi-canvas {
   display: block;
   touch-action: none;
+  cursor: none;
 }
 
 .hud {
