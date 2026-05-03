@@ -1343,3 +1343,84 @@ button {
     grid-template-rows: auto auto;
   }
 }
+
+/* === Mini Snake Preview (loadout panel) === */
+.wg-mini-stage {
+  height: 92px;
+  position: relative;
+  margin: 4px 0 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(240, 181, 64, 0.12), transparent 60%),
+    rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(245, 233, 211, 0.05);
+}
+.wg-mini-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at center, rgba(240, 181, 64, 0.06) 0.5px, transparent 1px);
+  background-size: 12px 12px;
+  opacity: 0.6;
+}
+.wg-mini-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg, transparent, rgba(240, 181, 64, 0.08) 50%, transparent),
+    linear-gradient(90deg, transparent, rgba(240, 181, 64, 0.05) 50%, transparent);
+  background-size: 80px 1px, 50px 1px;
+  background-position: 0 35%, 30px 65%;
+  background-repeat: no-repeat;
+  animation: wg-speed-lines 1.4s linear infinite;
+  opacity: 0.7;
+}
+@keyframes wg-speed-lines {
+  0% { background-position: -100px 35%, -130px 65%; }
+  100% { background-position: 100% 35%, 100% 65%; }
+}
+.wg-mini-snake {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+}
+.wg-mini-snake i {
+  position: relative;
+  width: 22px; height: 22px;
+  margin-left: -7px;
+  border-radius: 50%;
+  box-shadow: inset -3px -4px 0 rgba(0, 0, 0, 0.18);
+  animation: wg-slither-2d 1.2s ease-in-out infinite;
+}
+.wg-mini-snake i:nth-child(1) { margin-left: 0; }
+.wg-mini-snake i:nth-child(2) { animation-delay: 0.06s; }
+.wg-mini-snake i:nth-child(3) { animation-delay: 0.12s; }
+.wg-mini-snake i:nth-child(4) { animation-delay: 0.18s; }
+.wg-mini-snake i:nth-child(5) { animation-delay: 0.24s; width: 19px; height: 19px; }
+.wg-mini-snake i:nth-child(6) { animation-delay: 0.30s; width: 19px; height: 19px; }
+.wg-mini-snake i:nth-child(7) { animation-delay: 0.36s; width: 16px; height: 16px; opacity: 0.85; }
+@keyframes wg-slither-2d {
+  0%, 100% { translate: 0 -4px; }
+  50%      { translate: 0 4px; }
+}
+.wg-mini-snake .wg-mini-head { z-index: 4; }
+.wg-mini-snake .wg-mini-head::after {
+  content: '';
+  position: absolute;
+  top: 6px; right: 4px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #021018;
+}
+.wg-mini-hat {
+  position: absolute;
+  top: -12px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  z-index: 5;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
