@@ -8,8 +8,12 @@ import { CharmPicker } from "./CharmPicker";
 import { HatPicker } from "./HatPicker";
 import { LifetimePanel } from "./LifetimePanel";
 import { LoadoutPanel } from "./LoadoutPanel";
+import { MarketModal } from "./MarketModal";
+import { ProfileModal } from "./ProfileModal";
+import { QuestsModal } from "./QuestsModal";
 import { SettingsModal } from "./SettingsModal";
 import { SkinPicker } from "./SkinPicker";
+import { SocialModal } from "./SocialModal";
 
 type WarmGoldMenuProps = {
   name: string;
@@ -44,10 +48,10 @@ export function WarmGoldMenu({
   }, []);
 
   const noop = () => undefined;
-  const noopMarket = () => undefined;
-  const noopQuests = () => undefined;
-  const noopSocial = () => undefined;
-  const noopProfile = () => undefined;
+  const [marketOpen, setMarketOpen] = useState(false);
+  const [questsOpen, setQuestsOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   return (
     <section className="wg-stage" aria-label="Slithera main menu">
@@ -81,10 +85,10 @@ export function WarmGoldMenu({
           daily={daily}
           countdownSec={countdown}
           playerName={name}
-          onOpenMarket={noopMarket}
-          onOpenQuests={noopQuests}
-          onOpenSocial={noopSocial}
-          onOpenProfile={noopProfile}
+          onOpenMarket={() => setMarketOpen(true)}
+          onOpenQuests={() => setQuestsOpen(true)}
+          onOpenSocial={() => setSocialOpen(true)}
+          onOpenProfile={() => setProfileOpen(true)}
         />
       </div>
       <div className="wg-bottom-edge">SLITHERA · NO. 002 · MMXXVI</div>
@@ -112,6 +116,10 @@ export function WarmGoldMenu({
         onChange={onRopeAccessoryChange}
       />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <MarketModal open={marketOpen} onClose={() => setMarketOpen(false)} />
+      <QuestsModal open={questsOpen} onClose={() => setQuestsOpen(false)} />
+      <SocialModal open={socialOpen} onClose={() => setSocialOpen(false)} />
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </section>
   );
 }

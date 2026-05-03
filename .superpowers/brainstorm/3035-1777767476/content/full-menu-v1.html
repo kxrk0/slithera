@@ -1,0 +1,479 @@
+<h2>Tam ana menü tasarımı — 2 farklı sıcak ton</h2>
+<p class="subtitle">Canlı oyun canvası arkada, sol panel 2'ye bölünmüş, merkez aksiyon paneli, sağ leaderboard. Skin seçimi ayrı modalda. Tıkla seç ya da yorum yaz.</p>
+
+<style>
+  /* ============ Shared mockup frame ============ */
+  .menu-mock {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: transform 200ms ease, box-shadow 200ms ease;
+    border: 2px solid transparent;
+  }
+  .menu-mock:hover { transform: translateY(-3px); }
+  .menu-mock.selected { border-color: #22d8ff; box-shadow: 0 0 0 4px rgba(34,216,255,0.18); }
+
+  .menu-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  /* === Live canvas backdrop (fake animated snake) === */
+  .canvas-bg {
+    position: absolute; inset: 0;
+    overflow: hidden;
+  }
+  .snake-trail {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+  .snake-trail i {
+    position: absolute;
+    border-radius: 50%;
+    box-shadow: 0 0 12px currentColor;
+    animation: drift 18s linear infinite;
+  }
+  @keyframes drift {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(40px, -20px); }
+    50% { transform: translate(80px, 10px); }
+    75% { transform: translate(40px, 30px); }
+    100% { transform: translate(0, 0); }
+  }
+  .grid-overlay {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* === Layout grid === */
+  .menu-grid {
+    position: absolute; inset: 0;
+    padding: 56px 28px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 16px;
+    z-index: 10;
+  }
+  .left-stack {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 14px;
+  }
+
+  /* ============ DESIGN A: Warm Neon Refined ============ */
+  .mock-a .canvas-bg {
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,107,154,0.18), transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(176,124,255,0.16), transparent 55%),
+      radial-gradient(circle at 50% 90%, rgba(93,208,163,0.10), transparent 50%),
+      linear-gradient(160deg, #0a0d18, #14101f 50%, #110d1a);
+  }
+  .mock-a .snake-trail i { background: #ff6b9a; color: #ff6b9a; }
+  .mock-a .snake-trail i:nth-child(1) { width: 22px; height: 22px; left: 10%; top: 20%; }
+  .mock-a .snake-trail i:nth-child(2) { width: 20px; height: 20px; left: 14%; top: 28%; background: #ff8aaf; color: #ff8aaf; }
+  .mock-a .snake-trail i:nth-child(3) { width: 18px; height: 18px; left: 18%; top: 38%; background: #ffa8c5; color: #ffa8c5; }
+  .mock-a .snake-trail i:nth-child(4) { width: 16px; height: 16px; left: 22%; top: 50%; background: #ffc5d8; color: #ffc5d8; opacity: 0.7; }
+  .mock-a .snake-trail i:nth-child(5) { width: 24px; height: 24px; left: 80%; top: 60%; background: #b07cff; color: #b07cff; animation-delay: -6s; }
+  .mock-a .snake-trail i:nth-child(6) { width: 22px; height: 22px; left: 76%; top: 68%; background: #c599ff; color: #c599ff; animation-delay: -6s; }
+  .mock-a .snake-trail i:nth-child(7) { width: 20px; height: 20px; left: 72%; top: 76%; background: #d6b6ff; color: #d6b6ff; animation-delay: -6s; }
+
+  .mock-a .panel {
+    background: rgba(8, 10, 18, 0.62);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 18px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    color: #ffffff;
+  }
+  .mock-a .panel-label {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    color: #ff8aaf;
+    font-weight: 800;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mock-a .panel-label::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: #ff6b9a; box-shadow: 0 0 8px #ff6b9a;
+  }
+  .mock-a .cosmetic-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .mock-a .cosmetic-tile {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .mock-a .cosmetic-tile.active { border-color: #ff6b9a; background: rgba(255,107,154,0.12); box-shadow: inset 0 0 12px rgba(255,107,154,0.2); }
+  .mock-a .edit-btn { margin-top: 12px; font-size: 11px; color: #ff8aaf; font-weight: 800; letter-spacing: 0.6px; }
+  .mock-a .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+  .mock-a .stat-num { font-size: 22px; font-weight: 900; color: #ffffff; font-variant-numeric: tabular-nums; }
+  .mock-a .stat-lbl { font-size: 10px; color: #9ba3b8; letter-spacing: 0.8px; font-weight: 700; }
+
+  .mock-a .center-panel {
+    background: rgba(8, 10, 18, 0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 26px 22px;
+    backdrop-filter: blur(18px);
+    display: grid;
+    grid-template-rows: auto auto 1fr auto auto;
+    gap: 14px;
+    color: white;
+    box-shadow: 0 16px 60px rgba(0,0,0,0.55);
+  }
+  .mock-a .logo {
+    font-size: 38px; font-weight: 950; letter-spacing: 1px; line-height: 1;
+    background: linear-gradient(135deg, #ffffff 0%, #ff8aaf 60%, #b07cff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-align: center;
+  }
+  .mock-a .tagline {
+    text-align: center; font-size: 11px; color: #ff8aaf;
+    letter-spacing: 2.4px; font-weight: 800;
+  }
+  .mock-a .name-input {
+    background: rgba(0,0,0,0.42);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .mock-a .name-input::before {
+    content: "👤"; opacity: 0.7;
+  }
+  .mock-a .play-btn {
+    background: linear-gradient(135deg, #ff6b9a, #b07cff);
+    color: white;
+    text-align: center;
+    padding: 16px;
+    border-radius: 14px;
+    font-weight: 950;
+    font-size: 16px;
+    letter-spacing: 0.8px;
+    box-shadow: 0 10px 30px rgba(255,107,154,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .mock-a .secondary-row { display: flex; gap: 8px; }
+  .mock-a .secondary-btn {
+    flex: 1; padding: 10px; text-align: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    font-size: 11px; font-weight: 800;
+    color: #d4dce8; letter-spacing: 0.4px;
+  }
+
+  .mock-a .leaderboard-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #d4dce8; }
+  .mock-a .lb-rank { color: #ff8aaf; font-weight: 800; width: 18px; }
+  .mock-a .lb-score { color: #ffffff; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ============ DESIGN B: Warm Gold Brown ============ */
+  .mock-b .canvas-bg {
+    background:
+      radial-gradient(circle at 25% 30%, rgba(240,181,64,0.18), transparent 50%),
+      radial-gradient(circle at 75% 70%, rgba(217,122,60,0.16), transparent 55%),
+      radial-gradient(circle at 50% 90%, rgba(232,90,79,0.10), transparent 50%),
+      linear-gradient(160deg, #0e0a06, #1a120a 50%, #14100c);
+  }
+  .mock-b .snake-trail i { background: #f0b540; color: #f0b540; }
+  .mock-b .snake-trail i:nth-child(1) { width: 22px; height: 22px; left: 10%; top: 20%; }
+  .mock-b .snake-trail i:nth-child(2) { width: 20px; height: 20px; left: 14%; top: 28%; background: #ffc966; color: #ffc966; }
+  .mock-b .snake-trail i:nth-child(3) { width: 18px; height: 18px; left: 18%; top: 38%; background: #ffd680; color: #ffd680; }
+  .mock-b .snake-trail i:nth-child(4) { width: 16px; height: 16px; left: 22%; top: 50%; background: #ffe3a3; color: #ffe3a3; opacity: 0.7; }
+  .mock-b .snake-trail i:nth-child(5) { width: 24px; height: 24px; left: 80%; top: 60%; background: #d97a3c; color: #d97a3c; animation-delay: -6s; }
+  .mock-b .snake-trail i:nth-child(6) { width: 22px; height: 22px; left: 76%; top: 68%; background: #e8915a; color: #e8915a; animation-delay: -6s; }
+  .mock-b .snake-trail i:nth-child(7) { width: 20px; height: 20px; left: 72%; top: 76%; background: #f5a87a; color: #f5a87a; animation-delay: -6s; }
+
+  .mock-b .panel {
+    background: rgba(20, 14, 8, 0.66);
+    border: 1px solid rgba(245,233,211,0.12);
+    border-radius: 16px;
+    padding: 18px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    color: #f5e9d3;
+  }
+  .mock-b .panel-label {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    color: #f0b540;
+    font-weight: 800;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mock-b .panel-label::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: #f0b540; box-shadow: 0 0 8px #f0b540;
+  }
+  .mock-b .cosmetic-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .mock-b .cosmetic-tile {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: rgba(245,233,211,0.04);
+    border: 1px solid rgba(245,233,211,0.12);
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .mock-b .cosmetic-tile.active { border-color: #f0b540; background: rgba(240,181,64,0.12); box-shadow: inset 0 0 12px rgba(240,181,64,0.2); }
+  .mock-b .edit-btn { margin-top: 12px; font-size: 11px; color: #f0b540; font-weight: 800; letter-spacing: 0.6px; }
+  .mock-b .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+  .mock-b .stat-num { font-size: 22px; font-weight: 900; color: #fff8e7; font-variant-numeric: tabular-nums; }
+  .mock-b .stat-lbl { font-size: 10px; color: #c4b59a; letter-spacing: 0.8px; font-weight: 700; }
+
+  .mock-b .center-panel {
+    background: rgba(20, 14, 8, 0.55);
+    border: 1px solid rgba(245,233,211,0.14);
+    border-radius: 20px;
+    padding: 26px 22px;
+    backdrop-filter: blur(18px);
+    display: grid;
+    grid-template-rows: auto auto 1fr auto auto;
+    gap: 14px;
+    color: #f5e9d3;
+    box-shadow: 0 16px 60px rgba(0,0,0,0.55);
+  }
+  .mock-b .logo {
+    font-size: 38px; font-weight: 950; letter-spacing: 1px; line-height: 1;
+    background: linear-gradient(135deg, #fff8e7 0%, #f0b540 60%, #d97a3c 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-align: center;
+  }
+  .mock-b .tagline {
+    text-align: center; font-size: 11px; color: #f0b540;
+    letter-spacing: 2.4px; font-weight: 800;
+  }
+  .mock-b .name-input {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(245,233,211,0.16);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: #fff8e7;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .mock-b .name-input::before {
+    content: "👤"; opacity: 0.7;
+  }
+  .mock-b .play-btn {
+    background: linear-gradient(135deg, #f0b540, #d97a3c);
+    color: #1a120a;
+    text-align: center;
+    padding: 16px;
+    border-radius: 14px;
+    font-weight: 950;
+    font-size: 16px;
+    letter-spacing: 0.8px;
+    box-shadow: 0 10px 30px rgba(240,181,64,0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  .mock-b .secondary-row { display: flex; gap: 8px; }
+  .mock-b .secondary-btn {
+    flex: 1; padding: 10px; text-align: center;
+    background: rgba(245,233,211,0.04);
+    border: 1px solid rgba(245,233,211,0.12);
+    border-radius: 10px;
+    font-size: 11px; font-weight: 800;
+    color: #c4b59a; letter-spacing: 0.4px;
+  }
+
+  .mock-b .leaderboard-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(245,233,211,0.06); font-size: 12px; color: #c4b59a; }
+  .mock-b .lb-rank { color: #f0b540; font-weight: 800; width: 18px; }
+  .mock-b .lb-score { color: #fff8e7; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* Skin modal preview */
+  .modal-preview {
+    margin-top: 12px;
+    padding: 18px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.42);
+    border: 1px dashed rgba(255,255,255,0.18);
+  }
+  .modal-preview h4 { margin: 0 0 8px 0; }
+  .modal-preview small { opacity: 0.6; }
+</style>
+
+<div class="cards">
+
+  <!-- ============ DESIGN A ============ -->
+  <div class="card menu-mock mock-a" data-choice="a" onclick="toggleSelect(this)">
+    <div class="canvas-bg">
+      <div class="snake-trail">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="menu-label" style="background: rgba(255,107,154,0.2); color: #ff8aaf; border: 1px solid rgba(255,107,154,0.35);">A — WARM NEON · WHITE/BLACK BALANCED</div>
+
+    <div class="menu-grid">
+      <!-- LEFT split -->
+      <div class="left-stack">
+        <div class="panel">
+          <div class="panel-label">LOADOUT</div>
+          <div class="cosmetic-row">
+            <div class="cosmetic-tile active" title="Skin">🐍</div>
+            <div class="cosmetic-tile" title="Hat">👑</div>
+            <div class="cosmetic-tile" title="Rope">⭐</div>
+          </div>
+          <div class="edit-btn">▸ EDIT COSMETICS</div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">LIFETIME</div>
+          <div class="stat-row"><span class="stat-num">12,840</span><span class="stat-lbl">BEST SCORE</span></div>
+          <div class="stat-row"><span class="stat-num">47</span><span class="stat-lbl">KILLS</span></div>
+          <div class="stat-row"><span class="stat-num">2h 14m</span><span class="stat-lbl">PLAYED</span></div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="center-panel">
+        <div>
+          <div class="logo">SLITHERA</div>
+          <div class="tagline">ENTER · DEVOUR · DOMINATE</div>
+        </div>
+        <div></div>
+        <div></div>
+        <div class="name-input">YourName</div>
+        <div>
+          <div class="play-btn">▶ ENTER ARENA</div>
+          <div style="height: 10px"></div>
+          <div class="secondary-row">
+            <div class="secondary-btn">⚙ SETTINGS</div>
+            <div class="secondary-btn">🏆 STATS</div>
+            <div class="secondary-btn">❔ HOW</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="panel">
+        <div class="panel-label">LIVE LEADERBOARD</div>
+        <div class="leaderboard-row"><span><span class="lb-rank">1</span>NeonRift</span><span class="lb-score">24,310</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">2</span>Voidrunner</span><span class="lb-score">19,084</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">3</span>Fluxion</span><span class="lb-score">15,720</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">4</span>Bytecoil</span><span class="lb-score">11,402</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">5</span>Zynapse</span><span class="lb-score">8,944</span></div>
+        <div style="margin-top: 14px;" class="panel-label">DAILY CHALLENGE</div>
+        <div style="font-size: 12px; color: #d4dce8; margin-top: 4px;">Eat 30 food while boosting</div>
+        <div style="background: rgba(255,255,255,0.06); height: 6px; border-radius: 3px; margin-top: 8px;">
+          <div style="background: linear-gradient(90deg, #ff6b9a, #b07cff); height: 100%; width: 60%; border-radius: 3px;"></div>
+        </div>
+        <div style="font-size: 10px; color: #9ba3b8; margin-top: 4px; font-weight: 700;">18 / 30  ·  +250 XP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESIGN B ============ -->
+  <div class="card menu-mock mock-b" data-choice="b" onclick="toggleSelect(this)">
+    <div class="canvas-bg">
+      <div class="snake-trail">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="menu-label" style="background: rgba(240,181,64,0.2); color: #f0b540; border: 1px solid rgba(240,181,64,0.4);">B — WARM GOLD BROWN · COZY PREMIUM</div>
+
+    <div class="menu-grid">
+      <!-- LEFT split -->
+      <div class="left-stack">
+        <div class="panel">
+          <div class="panel-label">LOADOUT</div>
+          <div class="cosmetic-row">
+            <div class="cosmetic-tile active">🐍</div>
+            <div class="cosmetic-tile">👑</div>
+            <div class="cosmetic-tile">⭐</div>
+          </div>
+          <div class="edit-btn">▸ EDIT COSMETICS</div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">LIFETIME</div>
+          <div class="stat-row"><span class="stat-num">12,840</span><span class="stat-lbl">BEST SCORE</span></div>
+          <div class="stat-row"><span class="stat-num">47</span><span class="stat-lbl">KILLS</span></div>
+          <div class="stat-row"><span class="stat-num">2h 14m</span><span class="stat-lbl">PLAYED</span></div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="center-panel">
+        <div>
+          <div class="logo">SLITHERA</div>
+          <div class="tagline">ENTER · DEVOUR · DOMINATE</div>
+        </div>
+        <div></div>
+        <div></div>
+        <div class="name-input">YourName</div>
+        <div>
+          <div class="play-btn">▶ ENTER ARENA</div>
+          <div style="height: 10px"></div>
+          <div class="secondary-row">
+            <div class="secondary-btn">⚙ SETTINGS</div>
+            <div class="secondary-btn">🏆 STATS</div>
+            <div class="secondary-btn">❔ HOW</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="panel">
+        <div class="panel-label">LIVE LEADERBOARD</div>
+        <div class="leaderboard-row"><span><span class="lb-rank">1</span>NeonRift</span><span class="lb-score">24,310</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">2</span>Voidrunner</span><span class="lb-score">19,084</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">3</span>Fluxion</span><span class="lb-score">15,720</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">4</span>Bytecoil</span><span class="lb-score">11,402</span></div>
+        <div class="leaderboard-row"><span><span class="lb-rank">5</span>Zynapse</span><span class="lb-score">8,944</span></div>
+        <div style="margin-top: 14px;" class="panel-label">DAILY CHALLENGE</div>
+        <div style="font-size: 12px; color: #c4b59a; margin-top: 4px;">Eat 30 food while boosting</div>
+        <div style="background: rgba(245,233,211,0.08); height: 6px; border-radius: 3px; margin-top: 8px;">
+          <div style="background: linear-gradient(90deg, #f0b540, #d97a3c); height: 100%; width: 60%; border-radius: 3px;"></div>
+        </div>
+        <div style="font-size: 10px; color: #c4b59a; margin-top: 4px; font-weight: 700;">18 / 30  ·  +250 XP</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top: 18px; padding: 16px; background: rgba(34,216,255,0.05); border-left: 3px solid #22d8ff; border-radius: 8px;">
+  <strong>📐 Layout notları (her ikisinde de):</strong>
+  <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
+    <li><b>Arkaplan:</b> Gerçek oyun canvası (botlar dolaşır), üstüne karanlık gradient overlay</li>
+    <li><b>Sol üst panel:</b> Loadout — 3 küçük kart (skin / hat / rope). Tıklayınca <b>modal açılıyor</b></li>
+    <li><b>Sol alt panel:</b> Lifetime stats — Best score, Kills, Time played</li>
+    <li><b>Merkez panel:</b> Logo, isim girişi, ▶ ENTER ARENA, ⚙ Settings + 🏆 Stats + ❔ How</li>
+    <li><b>Sağ panel:</b> Live leaderboard + Daily challenge progress (motivasyon)</li>
+    <li><b>Renk balansı:</b> Paneller koyu yarı-saydam (siyah taban), metinler beyaz/krem, sıcak ton sadece accent — play butonu, ikonlar, focus ring, label başlıkları</li>
+  </ul>
+</div>
+
+<div style="margin-top: 14px; padding: 16px; background: rgba(255,107,154,0.06); border-left: 3px solid #ff6b9a; border-radius: 8px;">
+  <strong>💡 İkisi arasındaki fark:</strong>
+  <div style="margin-top: 8px;">
+    <b>A — Pembe-Mor:</b> Daha enerjik, gece arena hissi, "next-gen indie" tını. Cyber/neon kuşağa hitap.<br>
+    <b>B — Altın-Kahve:</b> Daha sıcak, lüks-rahat, "kahveni al gel" hissi. Premium-cozy. Daha az saturated, göze daha yumuşak.
+  </div>
+</div>

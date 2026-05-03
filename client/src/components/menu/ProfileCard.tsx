@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth";
 import { formatCoins, loadCoins } from "../../lib/coins";
+import { deriveLevel, loadXp } from "../../lib/xp";
 
 type ProfileCardProps = {
   onOpenMarket: () => void;
@@ -14,6 +15,7 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
   const { user, signIn, signOut } = useAuth();
   const [coins, setCoins] = useState<number>(() => loadCoins());
   const [signing, setSigning] = useState(false);
+  const [xp, setXp] = useState(() => loadXp());
 
   useEffect(() => {
     const handler = () => setCoins(loadCoins());
@@ -24,6 +26,19 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
       window.removeEventListener("storage", handler);
     };
   }, []);
+
+  useEffect(() => {
+    const handler = () => setXp(loadXp());
+    window.addEventListener("slithera-xp-change", handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("slithera-xp-change", handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+
+  const level = deriveLevel(xp);
+  const xpPct = Math.round((level.current / level.needed) * 100);
 
   if (!user) {
     const handleSignIn = async () => {
@@ -71,14 +86,14 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
         <div className="wg-profile-avatar">{user.avatar}</div>
         <div className="wg-profile-info">
           <div className="wg-profile-name">{user.name}</div>
-          <div className="wg-profile-meta">Level 1 · Initiate</div>
+          <div className="wg-profile-meta">Level {level.level} · Initiate</div>
         </div>
         <button className="wg-profile-signout" type="button" onClick={signOut} aria-label="Sign out">⏻</button>
       </div>
       <div className="wg-profile-xp">
-        <div className="wg-profile-xp-bar"><i style={{ width: "12%" }} /></div>
+        <div className="wg-profile-xp-bar"><i style={{ width: `${xpPct}%` }} /></div>
         <div className="wg-profile-xp-meta">
-          <span>120 / 1000 XP</span>
+          <span>{level.current.toLocaleString()} / {level.needed.toLocaleString()} XP</span>
           <span className="coin"><span aria-hidden="true">◉</span> {formatCoins(coins)}</span>
         </div>
       </div>

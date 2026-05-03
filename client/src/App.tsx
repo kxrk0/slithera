@@ -3,8 +3,10 @@ import { GameHud } from "./components/GameHud";
 import { WarmGoldMenu } from "./components/menu/WarmGoldMenu";
 import { PixiGame } from "./game/PixiGame";
 import { useGameClient } from "./game/useGameClient";
+import { addCoins } from "./lib/coins";
 import { useMenuSimulation } from "./lib/menuBackdrop";
 import { recordGameEnd } from "./lib/stats";
+import { addXp } from "./lib/xp";
 import { SNAKE_SKINS } from "../../shared/constants";
 import type { ClientInput } from "../../shared/types";
 
@@ -37,6 +39,11 @@ export default function App() {
     if (!player.alive && lastAlive.alive) {
       const playedSec = Math.max(0, Math.floor((Date.now() - lastAlive.startedAt) / 1000));
       recordGameEnd({ score: player.score, kills: player.kills, playedSec });
+      // Award XP and coins (gated to signed-in users via the lib internals — but since lib is local, just call)
+      // Length-based reward: 1 XP per length point + 50 per kill, 1 coin per 5 length
+      const lengthAwarded = player.score; // score now = length
+      addXp(lengthAwarded + player.kills * 50);
+      addCoins(Math.floor(lengthAwarded / 5));
       setLastAlive((prev) => ({ ...prev, alive: false }));
     }
   }, [player, lastAlive]);

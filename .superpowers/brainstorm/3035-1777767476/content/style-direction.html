@@ -1,0 +1,182 @@
+<h2>Hangi görsel ton hissini veriyor?</h2>
+<p class="subtitle">Slither.io'dan daha sempatik ve zengin bir oyun için 3 farklı stil yönü. Tek tıkla seç, ya da yorum yaz.</p>
+
+<style>
+  .style-card {
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 200ms ease, box-shadow 200ms ease;
+    border: 2px solid transparent;
+  }
+  .style-card:hover { transform: translateY(-4px); }
+  .style-card.selected { border-color: #22d8ff; box-shadow: 0 0 0 4px rgba(34,216,255,0.18); }
+
+  .preview { height: 320px; padding: 20px; position: relative; overflow: hidden; }
+  .preview h4 { margin: 0 0 4px 0; font-weight: 800; letter-spacing: 0.5px; }
+  .preview small { opacity: 0.75; font-size: 11px; }
+
+  /* === A: Soft Glass === */
+  .preview-a {
+    background:
+      radial-gradient(circle at 30% 20%, rgba(133, 200, 255, 0.4), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(180, 130, 255, 0.32), transparent 50%),
+      linear-gradient(135deg, #0a1626, #0d1f3a);
+    color: #eaf6ff;
+  }
+  .preview-a .glass {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .preview-a .glass-title { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .preview-a .skin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .preview-a .skin-chip { aspect-ratio: 1; border-radius: 10px; background: linear-gradient(135deg, #79f2ff, #2bb6e6); box-shadow: 0 4px 12px rgba(34,216,255,0.3); }
+  .preview-a .skin-chip:nth-child(2) { background: linear-gradient(135deg, #ffd5ad, #ff7e62); box-shadow: 0 4px 12px rgba(255,126,98,0.3); }
+  .preview-a .skin-chip:nth-child(3) { background: linear-gradient(135deg, #d3ffb1, #7fc94c); }
+  .preview-a .skin-chip:nth-child(4) { background: linear-gradient(135deg, #e0c4ff, #9c6cff); }
+  .preview-a .play-btn { margin-top: 12px; padding: 10px; background: linear-gradient(135deg, rgba(34,216,255,0.4), rgba(34,216,255,0.18)); border-radius: 12px; text-align: center; font-weight: 800; border: 1px solid rgba(34,216,255,0.4); }
+
+  /* === B: Warm Neon === */
+  .preview-b {
+    background: linear-gradient(160deg, #1d1430, #2c1840 60%, #3a1d3d);
+    color: #ffeef0;
+  }
+  .preview-b .panel {
+    background: rgba(255,210,225,0.04);
+    border: 1px solid rgba(255,180,200,0.18);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .preview-b .skin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .preview-b .skin-chip { aspect-ratio: 1; border-radius: 12px; background: linear-gradient(135deg, #ffafc8, #ff6b9a); box-shadow: 0 0 18px rgba(255,107,154,0.45); }
+  .preview-b .skin-chip:nth-child(2) { background: linear-gradient(135deg, #c5b3ff, #8a6dff); box-shadow: 0 0 18px rgba(138,109,255,0.45); }
+  .preview-b .skin-chip:nth-child(3) { background: linear-gradient(135deg, #ffcfa1, #ff9760); box-shadow: 0 0 18px rgba(255,151,96,0.45); }
+  .preview-b .skin-chip:nth-child(4) { background: linear-gradient(135deg, #b6f0d9, #5dd0a3); box-shadow: 0 0 18px rgba(93,208,163,0.45); }
+  .preview-b .play-btn { margin-top: 12px; padding: 10px; background: linear-gradient(135deg, #ff6b9a, #b07cff); border-radius: 999px; text-align: center; font-weight: 800; box-shadow: 0 6px 20px rgba(255,107,154,0.5); }
+
+  /* === C: Clean Arcade === */
+  .preview-c {
+    background: linear-gradient(180deg, #f7faff, #e8eef5);
+    color: #1a2230;
+  }
+  .preview-c .panel {
+    background: white;
+    border: 2px solid #e1e7f0;
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 4px 0 #d1dae5, 0 6px 12px rgba(0,0,0,0.04);
+  }
+  .preview-c .skin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .preview-c .skin-chip { aspect-ratio: 1; border-radius: 12px; background: #22d8ff; box-shadow: 0 3px 0 #0fa3c2; border: 2px solid white; }
+  .preview-c .skin-chip:nth-child(2) { background: #ff7e62; box-shadow: 0 3px 0 #c4503a; }
+  .preview-c .skin-chip:nth-child(3) { background: #b6ff45; box-shadow: 0 3px 0 #7cc91e; }
+  .preview-c .skin-chip:nth-child(4) { background: #b15cff; box-shadow: 0 3px 0 #7e30c4; }
+  .preview-c .play-btn { margin-top: 12px; padding: 12px; background: #22d8ff; color: white; border-radius: 14px; text-align: center; font-weight: 900; box-shadow: 0 4px 0 #0fa3c2; border: 2px solid white; }
+
+  .meta { padding: 16px; background: rgba(255,255,255,0.03); border-top: 1px solid rgba(255,255,255,0.06); }
+  .meta-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: rgba(34,216,255,0.15); color: #88ddff; font-weight: 700; }
+</style>
+
+<div class="cards">
+  <!-- A: Soft Glass -->
+  <div class="card style-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="preview preview-a">
+      <h4>SLITHERA</h4>
+      <small>Arena Loadout</small>
+      <div style="height: 14px"></div>
+      <div class="glass">
+        <div class="glass-title">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #22d8ff; box-shadow: 0 0 8px #22d8ff"></div>
+          <span style="font-size: 11px; font-weight: 700;">YILAN DERİSİ</span>
+        </div>
+        <div class="skin-row">
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+        </div>
+        <div class="play-btn">▶ ARENAYA GİR</div>
+      </div>
+    </div>
+    <div class="meta">
+      <h3 style="margin: 0 0 4px 0;">A — Soft Glass</h3>
+      <p style="margin: 0; opacity: 0.7;">Buzlu cam paneller, yumuşak blur, derin uzay tonu. Modern ve premium.</p>
+      <div class="meta-tags">
+        <span class="tag">frosted glass</span>
+        <span class="tag">cyan + violet</span>
+        <span class="tag">premium</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: Warm Neon -->
+  <div class="card style-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="preview preview-b">
+      <h4>SLITHERA</h4>
+      <small>Arena Loadout</small>
+      <div style="height: 14px"></div>
+      <div class="panel">
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff6b9a; box-shadow: 0 0 10px #ff6b9a"></div>
+          <span style="font-size: 11px; font-weight: 700;">YILAN DERİSİ</span>
+        </div>
+        <div class="skin-row">
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+        </div>
+        <div class="play-btn">▶ ARENAYA GİR</div>
+      </div>
+    </div>
+    <div class="meta">
+      <h3 style="margin: 0 0 4px 0;">B — Warm Neon</h3>
+      <p style="margin: 0; opacity: 0.7;">Sıcak pastel ışıltılar, pembe-mor-mint. Davetkâr, sempatik, oyuncak gibi.</p>
+      <div class="meta-tags">
+        <span class="tag" style="background: rgba(255,107,154,0.2); color: #ff9bb8">pink + purple</span>
+        <span class="tag" style="background: rgba(138,109,255,0.2); color: #b8a3ff">sympatic</span>
+        <span class="tag" style="background: rgba(93,208,163,0.2); color: #94e6c4">playful</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: Clean Arcade -->
+  <div class="card style-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="preview preview-c">
+      <h4 style="color: #1a2230;">SLITHERA</h4>
+      <small style="color: #6a7790;">Arena Loadout</small>
+      <div style="height: 14px"></div>
+      <div class="panel">
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #22d8ff;"></div>
+          <span style="font-size: 11px; font-weight: 800; color: #2a3447;">YILAN DERİSİ</span>
+        </div>
+        <div class="skin-row">
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+          <div class="skin-chip"></div>
+        </div>
+        <div class="play-btn">▶ ARENAYA GİR</div>
+      </div>
+    </div>
+    <div class="meta">
+      <h3 style="margin: 0 0 4px 0;">C — Clean Arcade</h3>
+      <p style="margin: 0; opacity: 0.7;">Aydınlık zemin, kalın yuvarlak şekiller, oyuncak hissi. Açık ve net.</p>
+      <div class="meta-tags">
+        <span class="tag">light theme</span>
+        <span class="tag">chunky shapes</span>
+        <span class="tag">friendly</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 14px; background: rgba(34,216,255,0.05); border-left: 3px solid #22d8ff; border-radius: 8px;">
+  <strong>💡 Önerim:</strong> <b>B (Warm Neon)</b> — "sempatik ve zengin" hedefine en yakın. A premium ama soğuk; C net ama oyunun gece arena hissini kaybeder. B karanlık ama sıcak — hem rahat göze hem de oyunun mood'una uyar.
+</div>
