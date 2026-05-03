@@ -5,6 +5,7 @@ import {
   MAX_SEGMENTS,
   MIN_ACTIVE_SNAKES,
   MIN_SCORE,
+  HAT_OPTIONS,
   ROPE_ACCESSORIES,
   START_LENGTH,
   TAIL_GROW_SEGMENTS_PER_SECOND,
@@ -144,6 +145,20 @@ describe("authoritative simulation", () => {
     const world = createWorld(99);
     const player = createPlayer(world, "rope_test", "RopePlayer", false, "cyan-core", "skull");
     expect(player.ropeAccessoryId).toBe("skull");
+  });
+
+  it("HAT_OPTIONS has none as first entry and includes crown/halo/visor", () => {
+    const ids = HAT_OPTIONS.map((h) => h.id);
+    expect(ids[0]).toBe("none");
+    expect(ids).toContain("crown");
+    expect(ids).toContain("halo");
+    expect(ids).toContain("visor");
+  });
+
+  it("createPlayer stores hatId on the player state", () => {
+    const world = createWorld(101);
+    const player = createPlayer(world, "hat_test", "HatPlayer", false, "cyan-core", "none", "crown");
+    expect(player.hatId).toBe("crown");
   });
 
   it("keeps the tail on the travelled path instead of sliding sideways", () => {

@@ -56,7 +56,15 @@ export function createWorld(seed = 1337): World {
   return world;
 }
 
-export function createPlayer(world: World, id: string, name: string, bot = false, skinId?: string, ropeAccessoryId?: string): PlayerState {
+export function createPlayer(
+  world: World,
+  id: string,
+  name: string,
+  bot = false,
+  skinId?: string,
+  ropeAccessoryId?: string,
+  hatId?: string
+): PlayerState {
   const fallbackColor = PLAYER_COLORS[world.players.size % PLAYER_COLORS.length];
   const skin = SNAKE_SKINS.find((item) => item.id === skinId) ?? SNAKE_SKINS[world.players.size % SNAKE_SKINS.length];
   const spawn = randomPoint(world.rng);
@@ -78,7 +86,8 @@ export function createPlayer(world: World, id: string, name: string, bot = false
     segments: makeSegments(spawn, heading, START_LENGTH),
     segmentProgress: 0,
     kills: 0,
-    ropeAccessoryId
+    ropeAccessoryId,
+    hatId
   };
 
   world.players.set(id, player);

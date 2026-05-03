@@ -99,3 +99,17 @@ export const ROPE_ACCESSORIES = [
 ] as const;
 
 export type RopeAccessoryId = typeof ROPE_ACCESSORIES[number]["id"];
+
+export const HAT_OPTIONS = [
+  { id: "none",    name: "Bare",    mark: "∅",  rarity: "" },
+  { id: "crown",   name: "Crown",   mark: "👑", rarity: "myth" },
+  { id: "halo",    name: "Halo",    mark: "○",  rarity: "common" },
+  { id: "visor",   name: "Visor",   mark: "◧",  rarity: "common" },
+  { id: "top-hat", name: "Top Hat", mark: "🎩", rarity: "rare" },
+  { id: "helm",    name: "Helm",    mark: "🪖", rarity: "locked" },
+  { id: "cap",     name: "Cap",     mark: "🧢", rarity: "locked" },
+  { id: "mortar",  name: "Mortar",  mark: "🎓", rarity: "locked" },
+  { id: "hardhat", name: "Hardhat", mark: "⛑",  rarity: "locked" }
+] as const;
+
+export type HatId = typeof HAT_OPTIONS[number]["id"];

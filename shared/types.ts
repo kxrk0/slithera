@@ -26,6 +26,7 @@ export type PlayerState = {
   kills: number;
   deathAt?: number;
   ropeAccessoryId?: string;
+  hatId?: string;
 };
 
 export type FoodPellet = Vec2 & {
@@ -50,7 +51,7 @@ export type ClientInput = {
 };
 
 export type ClientMessage =
-  | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string }
+  | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string; hatId?: string }
   | { type: "input"; input: ClientInput; seq: number }
   | { type: "ping"; nonce: number }
   | { type: "respawn" };
