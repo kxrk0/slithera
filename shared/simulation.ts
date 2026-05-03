@@ -126,6 +126,8 @@ export function stepWorld(world: World, dt: number, now = Date.now()): GameEvent
   ensureBots(world);
   ensureFood(world);
 
+  const stepDt = Math.min(dt, 0.05);
+
   for (const player of world.players.values()) {
     if (!player.alive) {
       if (player.bot) respawn(world, player.id, now);
@@ -142,18 +144,18 @@ export function stepWorld(world: World, dt: number, now = Date.now()): GameEvent
     player.speed = boosting ? BOOST_SPEED : BASE_SPEED;
     player.boost = 100;
     if (boosting) {
-      player.score = Math.max(MIN_SCORE, player.score - BOOST_SHRINK_SCORE_PER_SECOND * dt);
+      player.score = Math.max(MIN_SCORE, player.score - BOOST_SHRINK_SCORE_PER_SECOND * stepDt);
     }
 
-    player.heading = rotateToward(player.heading, player.targetHeading, effectiveTurnRate(player) * dt);
+    player.heading = rotateToward(player.heading, player.targetHeading, effectiveTurnRate(player) * stepDt);
     const direction = headingToVector(player.heading);
     const head = player.segments[0];
-    const nextHead = clampToWorld({ x: head.x + direction.x * player.speed * dt, y: head.y + direction.y * player.speed * dt });
+    const nextHead = clampToWorld({ x: head.x + direction.x * player.speed * stepDt, y: head.y + direction.y * player.speed * stepDt });
 
-    player.segments = sampleTrail([nextHead, ...player.segments], nextSegmentCount(player, dt), player.heading);
+    player.segments = sampleTrail([nextHead, ...player.segments], nextSegmentCount(player, stepDt), player.heading);
   }
 
-  updateFood(world, dt);
+  updateFood(world, stepDt);
   for (const player of world.players.values()) {
     if (player.alive) collectFood(world, player);
   }
@@ -295,8 +297,11 @@ function effectiveTurnRate(player: PlayerState): number {
 
 function collectFood(world: World, player: PlayerState): void {
   const head = player.segments[0];
+  const growth = snakeSizeScale(player);
+  const pickupRadius = HEAD_RADIUS * growth + FOOD_RADIUS + 10;
+  const pickupRadiusSq = pickupRadius * pickupRadius;
   for (const pellet of world.food.values()) {
-    if (distanceSq(head, pellet) < (HEAD_RADIUS + FOOD_RADIUS + 10) ** 2) {
+    if (distanceSq(head, pellet) < pickupRadiusSq) {
       player.score = Math.floor(player.score + pellet.value);
       world.food.delete(pellet.id);
       world.events.push({ type: "food", id: pellet.id, playerId: player.id, value: pellet.value });
@@ -345,28 +350,42 @@ function updateFood(world: World, dt: number): void {
 }
 
 function resolveCollisions(world: World, now: number): void {
+  const wallVictims: PlayerState[] = [];
+  const bodyVictims: { player: PlayerState; killer: PlayerState }[] = [];
+  const COLLISION_LENIENCY = 1.06;
+
   for (const player of world.players.values()) {
     if (!player.alive) continue;
     const head = player.segments[0];
+    const playerGrowth = snakeSizeScale(player);
+    const wallMargin = 12 + HEAD_RADIUS * playerGrowth;
 
-    if (head.x <= 25 || head.y <= 25 || head.x >= WORLD_WIDTH - 25 || head.y >= WORLD_HEIGHT - 25) {
-      killPlayer(world, player, undefined, now);
+    if (head.x <= wallMargin || head.y <= wallMargin || head.x >= WORLD_WIDTH - wallMargin || head.y >= WORLD_HEIGHT - wallMargin) {
+      wallVictims.push(player);
       continue;
     }
 
-    const playerGrowth = snakeSizeScale(player);
     for (const rival of world.players.values()) {
       if (!rival.alive || rival.id === player.id) continue;
       const rivalGrowth = snakeSizeScale(rival);
-      const collisionRadiusSq = (HEAD_RADIUS * playerGrowth + BODY_RADIUS * rivalGrowth) ** 2;
+      const collisionRadius = (HEAD_RADIUS * playerGrowth + BODY_RADIUS * rivalGrowth) * COLLISION_LENIENCY;
+      const collisionRadiusSq = collisionRadius * collisionRadius;
       for (let index = 0; index < rival.segments.length; index += 1) {
         if (distanceSq(head, rival.segments[index]) < collisionRadiusSq) {
-          killPlayer(world, player, rival.id, now);
-          rival.kills += 1;
+          bodyVictims.push({ player, killer: rival });
           break;
         }
       }
-      if (!player.alive) break;
+    }
+  }
+
+  for (const player of wallVictims) {
+    if (player.alive) killPlayer(world, player, undefined, now);
+  }
+  for (const { player, killer } of bodyVictims) {
+    if (player.alive) {
+      killPlayer(world, player, killer.id, now);
+      killer.kills += 1;
     }
   }
 }

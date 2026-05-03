@@ -381,8 +381,8 @@ function smoothPlayers(cache: Map<string, RenderedPlayer>, targets: PlayerState[
   }
 
   const frameDt = Math.min(dt, 0.034);
-  const correctionAlpha = 1 - Math.exp(-frameDt * 8);
-  const headingAlpha = 1 - Math.exp(-frameDt * 14);
+  const correctionAlpha = 1 - Math.exp(-frameDt * 14);
+  const headingAlpha = 1 - Math.exp(-frameDt * 18);
   for (const target of targets) {
     const current = cache.get(target.id);
     if (current?.alive && !target.alive) {
