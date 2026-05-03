@@ -4,6 +4,7 @@ import { loadDaily, secondsUntilMidnight } from "../../lib/daily";
 import { loadStats } from "../../lib/stats";
 import { ArenaHallPanel } from "./ArenaHallPanel";
 import { CenterPanel } from "./CenterPanel";
+import { CharmPicker } from "./CharmPicker";
 import { HatPicker } from "./HatPicker";
 import { LifetimePanel } from "./LifetimePanel";
 import { LoadoutPanel } from "./LoadoutPanel";
@@ -28,7 +29,7 @@ type ModalKind = "skin" | "hat" | "charm" | null;
 
 export function WarmGoldMenu({
   name, skinId, hatId, ropeAccessoryId, leaderboard, online, latencyMs,
-  onNameChange, onSkinChange, onHatChange, onStart
+  onNameChange, onSkinChange, onHatChange, onRopeAccessoryChange, onStart
 }: WarmGoldMenuProps) {
   const [modal, setModal] = useState<ModalKind>(null);
   const stats = useMemo(() => loadStats(), []);
@@ -85,6 +86,14 @@ export function WarmGoldMenu({
         skinId={skinId}
         hatId={hatId}
         onChange={onHatChange}
+      />
+      <CharmPicker
+        open={modal === "charm"}
+        onClose={() => setModal(null)}
+        skinId={skinId}
+        hatId={hatId}
+        ropeAccessoryId={ropeAccessoryId}
+        onChange={onRopeAccessoryChange}
       />
     </section>
   );
