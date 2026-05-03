@@ -354,10 +354,13 @@ function resolveCollisions(world: World, now: number): void {
       continue;
     }
 
+    const playerGrowth = snakeSizeScale(player);
     for (const rival of world.players.values()) {
       if (!rival.alive || rival.id === player.id) continue;
-      for (let index = 6; index < rival.segments.length; index += 1) {
-        if (distanceSq(head, rival.segments[index]) < (HEAD_RADIUS + BODY_RADIUS * 0.84) ** 2) {
+      const rivalGrowth = snakeSizeScale(rival);
+      const collisionRadiusSq = (HEAD_RADIUS * playerGrowth + BODY_RADIUS * rivalGrowth) ** 2;
+      for (let index = 0; index < rival.segments.length; index += 1) {
+        if (distanceSq(head, rival.segments[index]) < collisionRadiusSq) {
           killPlayer(world, player, rival.id, now);
           rival.kills += 1;
           break;
@@ -438,6 +441,11 @@ function updateBotInput(world: World, player: PlayerState): ClientInput {
   const jitter = (world.rng() - 0.5) * 0.42;
   const heading = target ? Math.atan2(target.y - head.y, target.x - head.x) + jitter : player.heading + jitter;
   return { heading, boosting: nearest > 360 && player.segments.length > START_LENGTH + 8 && world.rng() > 0.62 };
+}
+
+function snakeSizeScale(player: PlayerState): number {
+  const progress = Math.max(0, player.segments.length - START_LENGTH) / Math.max(1, MAX_SEGMENTS - START_LENGTH);
+  return 1.02 + Math.min(1, progress) * 0.42;
 }
 
 function sanitizeName(name: string, fallback: string): string {
