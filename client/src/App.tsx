@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GameHud } from "./components/GameHud";
-import { MainMenu } from "./components/MainMenu";
+import { WarmGoldMenu } from "./components/menu/WarmGoldMenu";
 import { PixiGame } from "./game/PixiGame";
 import { useGameClient } from "./game/useGameClient";
+import { useMenuSimulation } from "./lib/menuBackdrop";
+import { recordGameEnd } from "./lib/stats";
 import { SNAKE_SKINS } from "../../shared/constants";
 import type { ClientInput } from "../../shared/types";
 
@@ -15,17 +17,48 @@ export default function App() {
   const [hatId, setHatId] = useState("none");
   const [ropeAccessoryId, setRopeAccessoryId] = useState("none");
   const [perf, setPerf] = useState({ fps: 0, renderer: "webgl" });
-  const profile = useMemo(() => ({ name: name.trim() || "You", skinId, ropeAccessoryId }), [name, skinId, ropeAccessoryId]);
+  const profile = useMemo(
+    () => ({ name: name.trim() || "You", skinId, hatId, ropeAccessoryId }),
+    [name, skinId, hatId, ropeAccessoryId]
+  );
   const { status, playerId, snapshot, latency, sendInput, respawn } = useGameClient(started, profile);
+  const menuSnapshot = useMenuSimulation(!started);
   const player = useMemo(() => snapshot?.players.find((item) => item.id === playerId), [snapshot, playerId]);
+
+  // Record game-end stats when local player transitions alive -> dead.
+  const [lastAlive, setLastAlive] = useState<{ alive: boolean; score: number; kills: number; startedAt: number }>(
+    { alive: false, score: 0, kills: 0, startedAt: 0 }
+  );
+  useEffect(() => {
+    if (!player) return;
+    if (player.alive && !lastAlive.alive) {
+      setLastAlive({ alive: true, score: 0, kills: 0, startedAt: Date.now() });
+    }
+    if (!player.alive && lastAlive.alive) {
+      const playedSec = Math.max(0, Math.floor((Date.now() - lastAlive.startedAt) / 1000));
+      recordGameEnd({ score: player.score, kills: player.kills, playedSec });
+      setLastAlive((prev) => ({ ...prev, alive: false }));
+    }
+  }, [player, lastAlive]);
 
   const handleInput = (input: ClientInput) => {
     if (!paused) sendInput(input);
   };
 
+  const renderedSnapshot = started ? snapshot : menuSnapshot;
+  const renderedPlayerId = started ? playerId : undefined;
+  const leaderboard = renderedSnapshot?.leaderboard ?? [];
+  const online = renderedSnapshot?.players.length ?? 0;
+
   return (
     <main className="game-shell">
-      <PixiGame snapshot={snapshot} playerId={playerId} paused={paused} onInput={handleInput} onPerf={setPerf} />
+      <PixiGame
+        snapshot={renderedSnapshot}
+        playerId={renderedPlayerId}
+        paused={!started ? false : paused}
+        onInput={handleInput}
+        onPerf={setPerf}
+      />
       {started ? (
         <GameHud
           status={status}
@@ -47,11 +80,14 @@ export default function App() {
           }}
         />
       ) : (
-        <MainMenu
+        <WarmGoldMenu
           name={name}
           skinId={skinId}
           hatId={hatId}
           ropeAccessoryId={ropeAccessoryId}
+          leaderboard={leaderboard}
+          online={online}
+          latencyMs={latency}
           onNameChange={setName}
           onSkinChange={setSkinId}
           onHatChange={setHatId}
