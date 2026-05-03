@@ -25,6 +25,8 @@ export type PlayerState = {
   segmentProgress: number;
   kills: number;
   deathAt?: number;
+  lastKillerId?: string;
+  lastKillerName?: string;
   ropeAccessoryId?: string;
   hatId?: string;
 };

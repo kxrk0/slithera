@@ -125,6 +125,8 @@ export function respawn(world: World, id: string, now = Date.now()): PlayerState
   player.segments = makeSegments(spawn, heading, START_LENGTH);
   player.segmentProgress = 0;
   player.deathAt = undefined;
+  player.lastKillerId = undefined;
+  player.lastKillerName = undefined;
   world.events.push({ type: "respawned", id });
   return player;
 }
@@ -402,6 +404,8 @@ function resolveCollisions(world: World, now: number): void {
 function killPlayer(world: World, player: PlayerState, killerId: string | undefined, now: number): void {
   player.alive = false;
   player.deathAt = now;
+  player.lastKillerId = killerId;
+  player.lastKillerName = killerId ? world.players.get(killerId)?.name : undefined;
   world.events.push({ type: "death", id: player.id, killerId });
 
   const dropSegments = player.segments.filter((_, index) => index % 2 === 0);

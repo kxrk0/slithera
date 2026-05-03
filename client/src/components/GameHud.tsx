@@ -32,7 +32,7 @@ export function GameHud({
   const active = snapshot?.players.filter((item) => item.alive).length ?? 0;
   const leaderboard = snapshot?.leaderboard ?? [];
   const score = player?.score ?? 0;
-  const killerName = useKillerName(player, snapshot);
+  const killerName = useKillerName(player);
 
   return (
     <div className="wg-hud" aria-live="polite">
@@ -171,9 +171,8 @@ function toRoman(n: number): string {
   return ROMAN[Math.max(0, Math.min(ROMAN.length - 1, n - 1))];
 }
 
-function useKillerName(player: PlayerState | undefined, snapshot: ServerSnapshot | undefined): string | null {
-  // Match the most recent death event for this player to find killer name.
-  // Server includes events on snapshot? No — events go via type:"event" channel. As a graceful fallback,
-  // we don't have direct killer access. Skip the killer lookup unless we can derive it.
-  return null;
+function useKillerName(player: PlayerState | undefined): string | null {
+  if (!player || player.alive) return null;
+  if (!player.lastKillerName) return null;
+  return player.lastKillerName;
 }
