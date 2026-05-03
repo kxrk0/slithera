@@ -477,9 +477,9 @@ function updateBotInput(world: World, player: PlayerState): ClientInput {
 
 function snakeSizeScale(player: PlayerState): number {
   const progress = Math.max(0, player.segments.length - START_LENGTH) / Math.max(1, MAX_SEGMENTS - START_LENGTH);
-  // Ease-out curve for more dramatic early growth, then taper
-  const eased = 1 - Math.pow(1 - Math.min(1, progress), 1.8);
-  return 1.0 + eased * 0.9;
+  // Ease-out curve for noticeable early growth then taper. Range 1.0 → 2.6.
+  const eased = 1 - Math.pow(1 - Math.min(1, progress), 1.6);
+  return 1.0 + eased * 1.6;
 }
 
 function sanitizeName(name: string, fallback: string): string {
