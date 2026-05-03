@@ -44,6 +44,10 @@ export function WarmGoldMenu({
   }, []);
 
   const noop = () => undefined;
+  const noopMarket = () => undefined;
+  const noopQuests = () => undefined;
+  const noopSocial = () => undefined;
+  const noopProfile = () => undefined;
 
   return (
     <section className="wg-stage" aria-label="Slithera main menu">
@@ -71,7 +75,17 @@ export function WarmGoldMenu({
           onStats={noop}
           onHowToPlay={noop}
         />
-        <ArenaHallPanel leaderboard={leaderboard} online={online} daily={daily} countdownSec={countdown} />
+        <ArenaHallPanel
+          leaderboard={leaderboard}
+          online={online}
+          daily={daily}
+          countdownSec={countdown}
+          playerName={name}
+          onOpenMarket={noopMarket}
+          onOpenQuests={noopQuests}
+          onOpenSocial={noopSocial}
+          onOpenProfile={noopProfile}
+        />
       </div>
       <div className="wg-bottom-edge">SLITHERA · NO. 002 · MMXXVI</div>
 
