@@ -66,16 +66,16 @@ describe("authoritative simulation", () => {
     expect(player.segments.length).toBeLessThanOrEqual(initialLength + TAIL_GROW_SEGMENTS_PER_SECOND + 1);
   });
 
-  it("caps snake length and publishes whole-number scores", () => {
+  it("caps snake length and publishes length as score", () => {
     const world = createWorld(11);
     const player = createPlayer(world, "score_test", "Pilot");
 
-    player.score = MIN_SCORE + 123.667;
     const snapshot = makeSnapshot(world, player.id);
     const publishedPlayer = snapshot.players.find((item) => item.id === player.id);
 
     expect(desiredSegmentCount(10_000_000)).toBe(MAX_SEGMENTS);
-    expect(publishedPlayer?.score).toBe(Math.floor(player.score));
+    expect(publishedPlayer?.score).toBe(player.segments.length);
+    expect(Number.isInteger(publishedPlayer?.score)).toBe(true);
   });
 
   it("pulls nearby food toward a player before collection", () => {
