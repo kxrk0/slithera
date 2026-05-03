@@ -20,7 +20,7 @@ function saveCoins(value: number): number {
 }
 
 export function addCoins(amount: number): number {
-  return saveCoins(loadCoins() + amount);
+  return saveCoins(loadCoins() + Math.max(0, Math.floor(amount)));
 }
 
 export function spendCoins(amount: number): { ok: boolean; balance: number } {
@@ -33,4 +33,37 @@ export function formatCoins(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 10_000) return `${(value / 1000).toFixed(1)}k`;
   return value.toLocaleString("en-US");
+}
+
+const CLAIM_KEY = "slithera-coins-claim-at";
+
+export function loadLastDailyClaim(): number {
+  try {
+    const raw = window.localStorage.getItem(CLAIM_KEY);
+    if (!raw) return 0;
+    const value = Number(JSON.parse(raw));
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function recordDailyClaim(now = Date.now()): void {
+  try {
+    window.localStorage.setItem(CLAIM_KEY, JSON.stringify(now));
+    window.dispatchEvent(new CustomEvent("slithera-coins-change"));
+  } catch { /* ignore */ }
+}
+
+export function dailyClaimAvailable(now = Date.now()): boolean {
+  const last = loadLastDailyClaim();
+  if (last === 0) return true;
+  // Available if a calendar-day boundary has been crossed since last claim
+  const lastDate = new Date(last);
+  const today = new Date(now);
+  return (
+    lastDate.getFullYear() !== today.getFullYear() ||
+    lastDate.getMonth() !== today.getMonth() ||
+    lastDate.getDate() !== today.getDate()
+  );
 }

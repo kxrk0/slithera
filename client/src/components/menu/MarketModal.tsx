@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { addCoins, formatCoins, loadCoins, spendCoins } from "../../lib/coins";
+import { addCoins, dailyClaimAvailable, formatCoins, loadCoins, recordDailyClaim, spendCoins } from "../../lib/coins";
+import { formatCountdown, secondsUntilMidnight } from "../../lib/daily";
 import { grantItem, loadInventory } from "../../lib/inventory";
 import { useAuth } from "../../lib/auth";
 import { WardrobeModal } from "./WardrobeModal";
@@ -41,6 +42,8 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
   const [owned, setOwned] = useState<string[]>(() => loadInventory().itemIds);
   const [filter, setFilter] = useState<"all" | "skin" | "hat" | "charm">("all");
   const [bumpId, setBumpId] = useState<string | null>(null);
+  const [canClaim, setCanClaim] = useState<boolean>(() => dailyClaimAvailable());
+  const [claimCountdown, setClaimCountdown] = useState<number>(() => secondsUntilMidnight());
 
   useEffect(() => {
     const refresh = () => {
@@ -54,6 +57,16 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
       window.removeEventListener("slithera-inventory-change", refresh);
     };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setCanClaim(dailyClaimAvailable());
+    const id = window.setInterval(() => {
+      setClaimCountdown(secondsUntilMidnight());
+      setCanClaim(dailyClaimAvailable());
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [open]);
 
   const filtered = ITEMS.filter((it) => filter === "all" || it.category === filter);
 
@@ -74,7 +87,10 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
   };
 
   const claimDailyCoins = () => {
+    if (!isSignedIn || !canClaim) return;
     addCoins(500);
+    recordDailyClaim();
+    setCanClaim(false);
   };
 
   return (
@@ -93,10 +109,14 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
           </div>
           {!isSignedIn ? (
             <div className="wg-market-locked">Sign in to purchase.</div>
-          ) : (
+          ) : canClaim ? (
             <button className="wg-market-claim" type="button" onClick={claimDailyCoins}>
               ✦ Claim 500 daily coins
             </button>
+          ) : (
+            <div className="wg-market-claim-cooldown">
+              Daily claim resets in {formatCountdown(claimCountdown)}
+            </div>
           )}
         </div>
       }

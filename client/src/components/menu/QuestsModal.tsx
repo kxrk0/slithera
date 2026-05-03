@@ -7,6 +7,23 @@ import { WardrobeModal } from "./WardrobeModal";
 
 type QuestsModalProps = { open: boolean; onClose: () => void };
 
+const CLAIM_KEY = "slithera-quest-claims";
+
+function loadClaims(): Set<string> {
+  try {
+    const raw = window.localStorage.getItem(CLAIM_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch { return new Set(); }
+}
+
+function saveClaims(claims: Set<string>): void {
+  try {
+    window.localStorage.setItem(CLAIM_KEY, JSON.stringify([...claims]));
+  } catch { /* ignore */ }
+}
+
 type WeeklyQuest = {
   id: string;
   name: string;
@@ -28,7 +45,7 @@ export function QuestsModal({ open, onClose }: QuestsModalProps) {
   const { isSignedIn } = useAuth();
   const daily = loadDaily();
   const [countdown, setCountdown] = useState(() => secondsUntilMidnight());
-  const [claimed, setClaimed] = useState<Set<string>>(new Set());
+  const [claimed, setClaimed] = useState<Set<string>>(() => loadClaims());
 
   useEffect(() => {
     if (!open) return;
@@ -37,10 +54,12 @@ export function QuestsModal({ open, onClose }: QuestsModalProps) {
   }, [open]);
 
   const claim = (questId: string, xp: number, coins: number) => {
-    if (claimed.has(questId)) return;
+    if (!isSignedIn || claimed.has(questId)) return;
     addXp(xp);
     addCoins(coins);
-    setClaimed((prev) => new Set(prev).add(questId));
+    const next = new Set(claimed).add(questId);
+    saveClaims(next);
+    setClaimed(next);
   };
 
   const dailyPct = Math.max(0, Math.min(100, Math.round((daily.progress / Math.max(1, daily.target)) * 100)));

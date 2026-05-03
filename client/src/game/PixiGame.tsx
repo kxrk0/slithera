@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import {
+  HAT_OPTIONS,
   MAX_SEGMENTS,
   MIN_SCORE,
   SCORE_PER_SEGMENT,
@@ -313,6 +314,21 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   const isRainbow = player.skinId === "rainbow";
   const rainbowOffset = isRainbow ? (performance.now() * 0.0006) : 0;
 
+  // Precomputed hue LUT for rainbow snakes — one per bead index, computed once per frame
+  let rainbowLut: Array<{ color: number; accent: number; shadow: number }> | null = null;
+  if (isRainbow) {
+    const totalBeads = segCount;
+    rainbowLut = new Array(totalBeads);
+    for (let n = 0; n < totalBeads; n += 1) {
+      const hue = ((n * 28) + rainbowOffset * 360) % 360;
+      rainbowLut[n] = {
+        color: hslToHex(hue, 80, 60),
+        accent: hslToHex(hue, 100, 82),
+        shadow: hslToHex(hue, 80, 28)
+      };
+    }
+  }
+
   // Draw body circles tail-first so head renders on top
   for (let i = segCount - 1; i >= 1; i -= 1) {
     const seg = displaySegments[i];
@@ -327,11 +343,11 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
     let beadColor = color;
     let beadAccent = accent;
     let beadShadow = shadow;
-    if (isRainbow) {
-      const hue = ((i * 28) + rainbowOffset * 360) % 360;
-      beadColor = hslToHex(hue, 80, 60);
-      beadAccent = hslToHex(hue, 100, 82);
-      beadShadow = hslToHex(hue, 80, 28);
+    if (isRainbow && rainbowLut) {
+      const lut = rainbowLut[i];
+      beadColor = lut.color;
+      beadAccent = lut.accent;
+      beadShadow = lut.shadow;
     }
     // shadow underlay
     graphics.circle(seg.x, seg.y, radius).fill({ color: beadShadow, alpha: 1 });
@@ -348,11 +364,11 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   let headColor = color;
   let headAccent = accent;
   let headShadow = shadow;
-  if (isRainbow) {
-    const hue = ((0 * 28) + rainbowOffset * 360) % 360;
-    headColor = hslToHex(hue, 80, 60);
-    headAccent = hslToHex(hue, 100, 82);
-    headShadow = hslToHex(hue, 80, 28);
+  if (isRainbow && rainbowLut) {
+    const lut = rainbowLut[0];
+    headColor = lut.color;
+    headAccent = lut.accent;
+    headShadow = lut.shadow;
   }
   // Head with layered gradient
   graphics.circle(head.x, head.y, headRadius).fill({ color: headShadow, alpha: 1 });
@@ -368,7 +384,8 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
 
   // Hat (oriented with heading, sitting just above the head)
   if (player.hatId && player.hatId !== "none") {
-    const hatMark = HAT_MARK[player.hatId];
+    const hatOption = HAT_OPTIONS.find((h) => h.id === player.hatId);
+    const hatMark = hatOption?.mark;
     if (hatMark) {
       const hatOffset = headRadius * 1.15;
       const hx = head.x - Math.sin(player.heading) * hatOffset * 0.0 + 0; // offset purely upward in screen space
@@ -833,18 +850,3 @@ function hslToHex(h: number, s: number, l: number): number {
   return (f(0) << 16) | (f(8) << 8) | f(4);
 }
 
-const HAT_MARK: Record<string, string> = {
-  none: "",
-  crown: "👑",
-  halo: "○",
-  visor: "◧",
-  "top-hat": "🎩",
-  helm: "🪖",
-  cap: "🧢",
-  mortar: "🎓",
-  hardhat: "⛑",
-  wizard: "🧙",
-  santa: "🎅",
-  party: "🎉",
-  blade: "⚔️"
-};

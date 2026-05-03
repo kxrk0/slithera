@@ -2789,6 +2789,20 @@ button {
 }
 .wg-market-claim:hover { background: rgba(240, 181, 64, 0.1); }
 
+.wg-market-claim-cooldown {
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(245, 233, 211, 0.1);
+  border-radius: 999px;
+  color: var(--wg-cream-mute);
+  font-family: var(--wg-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .wg-market-tabs {
   display: flex;
   gap: 6px;
