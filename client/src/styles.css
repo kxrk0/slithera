@@ -645,7 +645,7 @@ button {
   inset: 0;
   padding: 56px 36px 36px;
   display: grid;
-  grid-template-columns: 280px minmax(0, 480px) 280px;
+  grid-template-columns: 310px minmax(0, 420px) 310px;
   gap: 18px;
   justify-content: center;
   align-content: center;
@@ -1354,7 +1354,7 @@ button {
   background: rgba(20, 14, 8, 0.55);
   border: 1px solid var(--wg-panel-border-strong);
   border-radius: 22px;
-  padding: 38px 38px 30px;
+  padding: 32px 28px 26px;
   backdrop-filter: blur(28px) saturate(150%);
   -webkit-backdrop-filter: blur(28px) saturate(150%);
   display: grid;
@@ -1460,8 +1460,8 @@ button {
 }
 
 .wg-name-input-wrap {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 20px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px;
   background: rgba(0, 0, 0, 0.42);
   border: 1px solid rgba(245, 233, 211, 0.12);
   border-radius: 14px;
@@ -1469,7 +1469,7 @@ button {
 }
 .wg-name-input-wrap:focus-within { border-color: var(--wg-gold); }
 .wg-name-input-icon {
-  width: 30px; height: 30px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--wg-gold), var(--wg-amber));
   display: grid; place-items: center;
@@ -1482,7 +1482,7 @@ button {
 .wg-name-input {
   flex: 1;
   font-family: var(--wg-serif);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--wg-cream);
   background: transparent;
@@ -1490,6 +1490,7 @@ button {
   outline: none;
   letter-spacing: -0.01em;
   font-variation-settings: 'opsz' 144;
+  min-width: 0;
 }
 .wg-name-meta {
   font-family: var(--wg-mono);
@@ -1500,38 +1501,38 @@ button {
 
 .wg-play-btn {
   position: relative;
-  padding: 22px 28px;
+  padding: 16px 22px;
   background: linear-gradient(135deg, #fff8e7 0%, var(--wg-cream) 100%);
   color: var(--wg-coffee);
   border: none;
-  border-radius: 18px;
+  border-radius: 14px;
   font-family: var(--wg-serif);
   font-style: italic;
   font-weight: 700;
-  font-size: 22px;
+  font-size: 18px;
   letter-spacing: -0.01em;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   font-variation-settings: 'opsz' 144;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.6) inset,
     0 -3px 0 rgba(180, 140, 80, 0.4) inset,
-    0 14px 40px rgba(240, 181, 64, 0.35),
-    0 24px 60px rgba(0, 0, 0, 0.4);
+    0 10px 30px rgba(240, 181, 64, 0.32),
+    0 18px 48px rgba(0, 0, 0, 0.36);
   overflow: hidden;
   text-align: left;
   transition: transform 220ms var(--wg-ease-snap), box-shadow 220ms var(--wg-ease-soft);
 }
 .wg-play-btn:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.6) inset,
     0 -3px 0 rgba(180, 140, 80, 0.4) inset,
-    0 22px 50px rgba(240, 181, 64, 0.5),
-    0 30px 70px rgba(0, 0, 0, 0.5);
+    0 16px 38px rgba(240, 181, 64, 0.45),
+    0 22px 56px rgba(0, 0, 0, 0.45);
 }
 .wg-play-btn::before {
   content: '';
@@ -1546,13 +1547,13 @@ button {
   100%     { left: 150%; }
 }
 .wg-play-btn .arrow-circle {
-  width: 42px; height: 42px;
+  width: 34px; height: 34px;
   border-radius: 50%;
   background: var(--wg-coffee);
   color: var(--wg-gold);
   display: grid; place-items: center;
   font-style: normal;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   flex-shrink: 0;
   font-family: var(--wg-sans);
