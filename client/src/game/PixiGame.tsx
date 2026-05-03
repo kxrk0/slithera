@@ -310,6 +310,9 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   // Parse a darker shadow tone derived from the main color (10% of luminance)
   const shadow = darkenColor(color, 0.45);
 
+  const isRainbow = player.skinId === "rainbow";
+  const rainbowOffset = isRainbow ? (performance.now() * 0.0006) : 0;
+
   // Draw body circles tail-first so head renders on top
   for (let i = segCount - 1; i >= 1; i -= 1) {
     const seg = displaySegments[i];
@@ -321,22 +324,40 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
     } else {
       radius = bodyRadius;
     }
+    let beadColor = color;
+    let beadAccent = accent;
+    let beadShadow = shadow;
+    if (isRainbow) {
+      const hue = ((i * 28) + rainbowOffset * 360) % 360;
+      beadColor = hslToHex(hue, 80, 60);
+      beadAccent = hslToHex(hue, 100, 82);
+      beadShadow = hslToHex(hue, 80, 28);
+    }
     // shadow underlay
-    graphics.circle(seg.x, seg.y, radius).fill({ color: shadow, alpha: 1 });
+    graphics.circle(seg.x, seg.y, radius).fill({ color: beadShadow, alpha: 1 });
     // main body fill (slightly smaller so the shadow ring is visible)
-    graphics.circle(seg.x, seg.y, radius * 0.92).fill({ color, alpha: 1 });
+    graphics.circle(seg.x, seg.y, radius * 0.92).fill({ color: beadColor, alpha: 1 });
     // sheen highlight in upper-left
-    graphics.circle(seg.x - radius * 0.3, seg.y - radius * 0.35, radius * 0.32).fill({ color: accent, alpha: 0.28 });
+    graphics.circle(seg.x - radius * 0.3, seg.y - radius * 0.35, radius * 0.32).fill({ color: beadAccent, alpha: 0.28 });
   }
 
   // Head
   const head = displaySegments[0];
   if (!insideBounds(head, view)) return;
   const headRadius = 16 * growth;
+  let headColor = color;
+  let headAccent = accent;
+  let headShadow = shadow;
+  if (isRainbow) {
+    const hue = ((0 * 28) + rainbowOffset * 360) % 360;
+    headColor = hslToHex(hue, 80, 60);
+    headAccent = hslToHex(hue, 100, 82);
+    headShadow = hslToHex(hue, 80, 28);
+  }
   // Head with layered gradient
-  graphics.circle(head.x, head.y, headRadius).fill({ color: shadow, alpha: 1 });
-  graphics.circle(head.x, head.y, headRadius * 0.92).fill({ color, alpha: 1 });
-  graphics.circle(head.x - headRadius * 0.32, head.y - headRadius * 0.36, headRadius * 0.36).fill({ color: accent, alpha: 0.4 });
+  graphics.circle(head.x, head.y, headRadius).fill({ color: headShadow, alpha: 1 });
+  graphics.circle(head.x, head.y, headRadius * 0.92).fill({ color: headColor, alpha: 1 });
+  graphics.circle(head.x - headRadius * 0.32, head.y - headRadius * 0.36, headRadius * 0.36).fill({ color: headAccent, alpha: 0.4 });
   // Eyes
   const eyeOffset = { x: Math.cos(player.heading + Math.PI / 2) * 6 * growth, y: Math.sin(player.heading + Math.PI / 2) * 6 * growth };
   const nose = { x: Math.cos(player.heading) * 8 * growth, y: Math.sin(player.heading) * 8 * growth };
@@ -687,6 +708,20 @@ function drawRopeAccessory(graphics: Graphics, accessoryId: string, cx: number, 
     case "fire":    drawFireIcon(graphics, cx, cy, r, accent); break;
     case "eye":     drawEyeIcon(graphics, cx, cy, r, accent); break;
     case "heart":   drawHeartIcon(graphics, cx, cy, r, accent); break;
+    case "moon":
+      // crescent: circle minus offset circle
+      graphics.circle(cx, cy, r).fill({ color: accent, alpha: 1 });
+      graphics.circle(cx + r * 0.35, cy - r * 0.1, r * 0.85).fill({ color: 0x1a2030, alpha: 1 });
+      break;
+    case "cube":
+      // square w/ subtle 3D
+      graphics.rect(cx - r * 0.7, cy - r * 0.7, r * 1.4, r * 1.4).fill({ color: accent, alpha: 1 });
+      break;
+    case "key":
+      // simple key outline (circle bow + rectangle shaft)
+      graphics.circle(cx - r * 0.4, cy, r * 0.45).stroke({ color: accent, alpha: 1, width: 2 });
+      graphics.rect(cx - r * 0.05, cy - r * 0.16, r * 0.9, r * 0.32).fill({ color: accent, alpha: 1 });
+      break;
   }
 }
 
@@ -786,6 +821,18 @@ function darkenColor(color: number, factor: number): number {
   return (r << 16) | (g << 8) | b;
 }
 
+function hslToHex(h: number, s: number, l: number): number {
+  const sNorm = s / 100;
+  const lNorm = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sNorm * Math.min(lNorm, 1 - lNorm);
+  const f = (n: number) => {
+    const x = lNorm - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return Math.round(255 * x);
+  };
+  return (f(0) << 16) | (f(8) << 8) | f(4);
+}
+
 const HAT_MARK: Record<string, string> = {
   none: "",
   crown: "👑",
@@ -795,5 +842,9 @@ const HAT_MARK: Record<string, string> = {
   helm: "🪖",
   cap: "🧢",
   mortar: "🎓",
-  hardhat: "⛑"
+  hardhat: "⛑",
+  wizard: "🧙",
+  santa: "🎅",
+  party: "🎉",
+  blade: "⚔️"
 };

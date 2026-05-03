@@ -20,7 +20,10 @@ const ROPE_EMOJI: Record<string, string> = {
   bolt: "⚡",
   fire: "🔥",
   eye: "👁️",
-  heart: "❤️"
+  heart: "❤️",
+  moon: "🌙",
+  cube: "🎲",
+  key: "🗝️"
 };
 
 const RARITY: Record<string, string> = {
@@ -31,7 +34,10 @@ const RARITY: Record<string, string> = {
   bolt: "CMN",
   fire: "CMN",
   eye: "RARE",
-  heart: "CMN"
+  heart: "CMN",
+  moon: "RARE",
+  cube: "CMN",
+  key: "EPIC"
 };
 
 export function CharmPicker({ open, onClose, skinId, hatId, ropeAccessoryId, onChange }: CharmPickerProps) {

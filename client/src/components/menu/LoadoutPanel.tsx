@@ -62,6 +62,9 @@ function ropeMarkOf(id: string): string {
     case "fire":    return "🔥";
     case "eye":     return "👁️";
     case "heart":   return "❤️";
+    case "moon":    return "🌙";
+    case "cube":    return "🎲";
+    case "key":     return "🗝️";
     default:        return "";
   }
 }

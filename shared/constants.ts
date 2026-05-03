@@ -72,6 +72,28 @@ export const SNAKE_SKINS = [
     accent: "#fff3bd",
     shadow: "#6d4a05"
   }
+  ,
+  {
+    id: "rainbow",
+    name: "Rainbow",
+    color: "#ff6b9a",
+    accent: "#ffe3a3",
+    shadow: "#7e30c4"
+  },
+  {
+    id: "tide",
+    name: "Tide",
+    color: "#1ec3b8",
+    accent: "#aef5ee",
+    shadow: "#0a4f4b"
+  },
+  {
+    id: "coal",
+    name: "Coal",
+    color: "#3a3a3f",
+    accent: "#ff5252",
+    shadow: "#0e0e10"
+  }
 ] as const;
 
 export const BOT_NAMES = [
@@ -96,6 +118,10 @@ export const ROPE_ACCESSORIES = [
   { id: "fire",    name: "Fire"    },
   { id: "eye",     name: "Eye"     },
   { id: "heart",   name: "Heart"   }
+  ,
+  { id: "moon",  name: "Moon"  },
+  { id: "cube",  name: "Cube"  },
+  { id: "key",   name: "Key"   }
 ] as const;
 
 export type RopeAccessoryId = typeof ROPE_ACCESSORIES[number]["id"];
@@ -110,6 +136,11 @@ export const HAT_OPTIONS = [
   { id: "cap",     name: "Cap",     mark: "🧢", rarity: "locked" },
   { id: "mortar",  name: "Mortar",  mark: "🎓", rarity: "locked" },
   { id: "hardhat", name: "Hardhat", mark: "⛑",  rarity: "locked" }
+  ,
+  { id: "wizard", name: "Wizard",  mark: "🧙", rarity: "rare" },
+  { id: "santa",  name: "Santa",   mark: "🎅", rarity: "myth" },
+  { id: "party",  name: "Party",   mark: "🎉", rarity: "common" },
+  { id: "blade",  name: "Blade",   mark: "⚔️", rarity: "rare" }
 ] as const;
 
 export type HatId = typeof HAT_OPTIONS[number]["id"];

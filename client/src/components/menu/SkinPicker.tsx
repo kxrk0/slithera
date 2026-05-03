@@ -16,7 +16,10 @@ const SKIN_RARITY: Record<string, string> = {
   "embercoil": "CMN",
   "venom-lime": "CMN",
   "void-violet": "EPIC",
-  "solar-gold": "RARE"
+  "solar-gold": "RARE",
+  "rainbow": "MYTH",
+  "tide": "RARE",
+  "coal": "EPIC"
 };
 
 export function SkinPicker({ open, onClose, skinId, hatId, onChange }: SkinPickerProps) {

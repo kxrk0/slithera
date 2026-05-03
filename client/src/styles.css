@@ -2420,3 +2420,15 @@ button {
   left: 22px;
   background: var(--wg-coffee);
 }
+
+.wg-mini-snake--rainbow i {
+  animation: wg-slither-2d 1.2s ease-in-out infinite, wg-rainbow-shift 4s linear infinite;
+}
+@keyframes wg-rainbow-shift {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.wg-3d-stage--rainbow .wg-3d-bead {
+  animation: wg-slither-3d 1.6s ease-in-out infinite, wg-rainbow-shift 6s linear infinite;
+}
