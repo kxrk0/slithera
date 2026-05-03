@@ -307,6 +307,9 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   const taperingStart = Math.floor(segCount * 0.8);
   const bodyRadius = 14 * growth;
 
+  // Parse a darker shadow tone derived from the main color (10% of luminance)
+  const shadow = darkenColor(color, 0.45);
+
   // Draw body circles tail-first so head renders on top
   for (let i = segCount - 1; i >= 1; i -= 1) {
     const seg = displaySegments[i];
@@ -318,16 +321,22 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
     } else {
       radius = bodyRadius;
     }
-    graphics.circle(seg.x, seg.y, radius).fill({ color, alpha: 1 });
+    // shadow underlay
+    graphics.circle(seg.x, seg.y, radius).fill({ color: shadow, alpha: 1 });
+    // main body fill (slightly smaller so the shadow ring is visible)
+    graphics.circle(seg.x, seg.y, radius * 0.92).fill({ color, alpha: 1 });
+    // sheen highlight in upper-left
+    graphics.circle(seg.x - radius * 0.3, seg.y - radius * 0.35, radius * 0.32).fill({ color: accent, alpha: 0.28 });
   }
 
   // Head
   const head = displaySegments[0];
   if (!insideBounds(head, view)) return;
   const headRadius = 16 * growth;
-  graphics.circle(head.x, head.y, headRadius).fill({ color, alpha: 1 });
-  // Shimmer highlight
-  graphics.circle(head.x - headRadius * 0.28, head.y - headRadius * 0.28, headRadius * 0.32).fill({ color: accent, alpha: 0.22 });
+  // Head with layered gradient
+  graphics.circle(head.x, head.y, headRadius).fill({ color: shadow, alpha: 1 });
+  graphics.circle(head.x, head.y, headRadius * 0.92).fill({ color, alpha: 1 });
+  graphics.circle(head.x - headRadius * 0.32, head.y - headRadius * 0.36, headRadius * 0.36).fill({ color: accent, alpha: 0.4 });
   // Eyes
   const eyeOffset = { x: Math.cos(player.heading + Math.PI / 2) * 6 * growth, y: Math.sin(player.heading + Math.PI / 2) * 6 * growth };
   const nose = { x: Math.cos(player.heading) * 8 * growth, y: Math.sin(player.heading) * 8 * growth };
@@ -335,6 +344,27 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   graphics.circle(head.x + nose.x - eyeOffset.x, head.y + nose.y - eyeOffset.y, 4 * growth).fill(0x031018);
   graphics.circle(head.x + nose.x + eyeOffset.x + 1 * growth, head.y + nose.y + eyeOffset.y - 1 * growth, 1.3 * growth).fill(0xffffff);
   graphics.circle(head.x + nose.x - eyeOffset.x + 1 * growth, head.y + nose.y - eyeOffset.y - 1 * growth, 1.3 * growth).fill(0xffffff);
+
+  // Hat (oriented with heading, sitting just above the head)
+  if (player.hatId && player.hatId !== "none") {
+    const hatMark = HAT_MARK[player.hatId];
+    if (hatMark) {
+      const hatOffset = headRadius * 1.15;
+      const hx = head.x - Math.sin(player.heading) * hatOffset * 0.0 + 0; // offset purely upward in screen space
+      const hy = head.y - hatOffset;
+      const hat = new Text({
+        text: hatMark,
+        style: {
+          fontFamily: "system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif",
+          fontSize: 22 * growth,
+          fill: 0xffffff
+        }
+      });
+      hat.anchor.set(0.5, 0.7);
+      hat.position.set(hx, hy);
+      labels.addChild(hat);
+    }
+  }
 
   if (rope && player.ropeAccessoryId && player.ropeAccessoryId !== "none") {
     const attachX = head.x - Math.cos(player.heading) * 18;
@@ -344,15 +374,19 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   }
 
   // Label
-  if (you) {
-    const label = new Text({
-      text: "You",
-      style: { fill: "#ffffff", fontFamily: "Inter, system-ui, sans-serif", fontSize: 18, fontWeight: "700" }
-    });
-    label.anchor.set(0.5);
-    label.position.set(head.x, head.y - 42);
-    labels.addChild(label);
-  }
+  const labelText = new Text({
+    text: player.name,
+    style: {
+      fill: you ? "#f0b540" : "#f5e9d3",
+      fontFamily: "Outfit, system-ui, sans-serif",
+      fontSize: 13,
+      fontWeight: you ? "800" : "600",
+      stroke: { color: 0x0e0a06, width: 3 }
+    }
+  });
+  labelText.anchor.set(0.5);
+  labelText.position.set(head.x, head.y - 32 * growth);
+  labels.addChild(labelText);
 }
 
 function segmentsWithGrowingTail(player: PlayerState): Vec2[] {
@@ -743,3 +777,22 @@ function detectRenderer(renderer: unknown): string {
   if (typeof candidate.type === "number") return candidate.type === 1 ? "webgl" : `renderer-${candidate.type}`;
   return "webgl";
 }
+
+function darkenColor(color: number, factor: number): number {
+  const r = Math.floor(((color >> 16) & 0xff) * factor);
+  const g = Math.floor(((color >> 8) & 0xff) * factor);
+  const b = Math.floor((color & 0xff) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
+const HAT_MARK: Record<string, string> = {
+  none: "",
+  crown: "👑",
+  halo: "○",
+  visor: "◧",
+  "top-hat": "🎩",
+  helm: "🪖",
+  cap: "🧢",
+  mortar: "🎓",
+  hardhat: "⛑"
+};
