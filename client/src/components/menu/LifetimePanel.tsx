@@ -27,7 +27,7 @@ export function LifetimePanel({ stats }: LifetimePanelProps) {
       <div className="wg-stats-grid">
         <div className="wg-stat-block">
           <div className="wg-stat-num">{stats.bestScore.toLocaleString()}</div>
-          <div className="wg-stat-label">Best Score</div>
+          <div className="wg-stat-label">Best Length</div>
         </div>
         <div className="wg-stat-block">
           <div className="wg-stat-num cream">{stats.totalKills}</div>

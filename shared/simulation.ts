@@ -181,7 +181,7 @@ export function makeSnapshot(world: World, localId?: string): ServerSnapshot {
     serverTime: Date.now(),
     players: [...world.players.values()].map((player) => ({
       ...player,
-      score: Math.floor(player.score),
+      score: player.segments.length,
       segments: player.segments.map((segment) => ({ ...segment }))
     })),
     food: [...world.food.values()].map((pellet) => ({ ...pellet })),
@@ -191,12 +191,12 @@ export function makeSnapshot(world: World, localId?: string): ServerSnapshot {
 
 export function makeLeaderboard(world: World, localId?: string): LeaderboardEntry[] {
   return [...world.players.values()]
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.segments.length - a.segments.length)
     .slice(0, 10)
     .map((player) => ({
       id: player.id,
       name: player.name,
-      score: Math.floor(player.score),
+      score: player.segments.length,
       color: player.color,
       you: player.id === localId
     }));
@@ -477,7 +477,9 @@ function updateBotInput(world: World, player: PlayerState): ClientInput {
 
 function snakeSizeScale(player: PlayerState): number {
   const progress = Math.max(0, player.segments.length - START_LENGTH) / Math.max(1, MAX_SEGMENTS - START_LENGTH);
-  return 1.02 + Math.min(1, progress) * 0.42;
+  // Ease-out curve for more dramatic early growth, then taper
+  const eased = 1 - Math.pow(1 - Math.min(1, progress), 1.8);
+  return 1.0 + eased * 0.9;
 }
 
 function sanitizeName(name: string, fallback: string): string {

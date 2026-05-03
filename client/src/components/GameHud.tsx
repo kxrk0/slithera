@@ -75,7 +75,7 @@ export function GameHud({
 
       {/* Bottom-left: score */}
       <section className="wg-hud-score">
-        <span className="lbl">Score</span>
+        <span className="lbl">Length</span>
         <strong>{formatScore(score)}</strong>
       </section>
 

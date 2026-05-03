@@ -187,7 +187,7 @@ export function PixiGame({ snapshot, playerId, paused, onInput, onPerf }: PixiGa
 
       const baseScale = Math.max(0.56, Math.min(1, Math.min(pixi.screen.width / 1280, pixi.screen.height / 760)));
       const sizeScale = me ? snakeSizeScale(me) : 1;
-      const targetZoom = 1 / Math.min(1.58, 1 + (sizeScale - 1) * 0.55);
+      const targetZoom = 1 / Math.min(2.0, 1 + (sizeScale - 1) * 0.85);
       cam.zoom += (targetZoom - cam.zoom) * (1 - Math.exp(-dt * 3.8));
       const scale = baseScale * cam.zoom;
       worldContainer.scale.set(scale);
@@ -736,7 +736,8 @@ function drawHeartIcon(g: Graphics, cx: number, cy: number, r: number, color: nu
 
 function snakeSizeScale(player: PlayerState): number {
   const progress = Math.max(0, player.segments.length - START_LENGTH) / Math.max(1, MAX_SEGMENTS - START_LENGTH);
-  return 1.02 + Math.min(1, progress) * 0.42;
+  const eased = 1 - Math.pow(1 - Math.min(1, progress), 1.8);
+  return 1.0 + eased * 0.9;
 }
 
 function lerpAngle(current: number, target: number, alpha: number): number {
