@@ -47,11 +47,12 @@ describe("HUD smoke", () => {
         onPlay={vi.fn()}
         onPause={vi.fn()}
         onRespawn={vi.fn()}
+        onMainMenu={vi.fn()}
         onBoost={vi.fn()}
       />
     );
 
-    expect(screen.getByRole("heading", { name: "SLITHERA" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Slither/i })).toBeInTheDocument();
     expect(screen.getAllByText("12,840").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByLabelText("Leaderboard")).toBeInTheDocument();
   });

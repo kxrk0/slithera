@@ -74,6 +74,10 @@ export default function App() {
             if (player && !player.alive) respawn();
           }}
           onRespawn={respawn}
+          onMainMenu={() => {
+            setStarted(false);
+            setPaused(true);
+          }}
           onBoost={(boosting) => {
             if (!player) return;
             handleInput({ heading: player.targetHeading, boosting });
