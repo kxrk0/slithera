@@ -1,12 +1,19 @@
-const STORAGE_KEY = "slithera-xp";
+import { loadAuthUser } from "./auth";
 
 export type XpState = {
   total: number;
 };
 
+function storageKey(): string | null {
+  const user = loadAuthUser();
+  return user ? `slithera-xp:${user.id}` : null;
+}
+
 export function loadXp(): XpState {
+  const key = storageKey();
+  if (!key) return { total: 0 };
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return { total: 0 };
     const parsed = JSON.parse(raw) as Partial<XpState>;
     return { total: typeof parsed.total === "number" ? Math.max(0, Math.floor(parsed.total)) : 0 };
@@ -16,10 +23,12 @@ export function loadXp(): XpState {
 }
 
 export function addXp(amount: number): XpState {
+  const key = storageKey();
   const current = loadXp();
   const next = { total: current.total + Math.max(0, Math.floor(amount)) };
+  if (!key) return next;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(key, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent("slithera-xp-change"));
   } catch { /* ignore */ }
   return next;

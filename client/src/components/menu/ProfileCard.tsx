@@ -18,22 +18,19 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
   const [xp, setXp] = useState(() => loadXp());
 
   useEffect(() => {
-    const handler = () => setCoins(loadCoins());
-    window.addEventListener("slithera-coins-change", handler);
-    window.addEventListener("storage", handler);
-    return () => {
-      window.removeEventListener("slithera-coins-change", handler);
-      window.removeEventListener("storage", handler);
+    const refresh = () => {
+      setCoins(loadCoins());
+      setXp(loadXp());
     };
-  }, []);
-
-  useEffect(() => {
-    const handler = () => setXp(loadXp());
-    window.addEventListener("slithera-xp-change", handler);
-    window.addEventListener("storage", handler);
+    window.addEventListener("slithera-coins-change", refresh);
+    window.addEventListener("slithera-xp-change", refresh);
+    window.addEventListener("slithera-auth-change", refresh);
+    window.addEventListener("storage", refresh);
     return () => {
-      window.removeEventListener("slithera-xp-change", handler);
-      window.removeEventListener("storage", handler);
+      window.removeEventListener("slithera-coins-change", refresh);
+      window.removeEventListener("slithera-xp-change", refresh);
+      window.removeEventListener("slithera-auth-change", refresh);
+      window.removeEventListener("storage", refresh);
     };
   }, []);
 
@@ -59,7 +56,9 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
           <li>Gift items to friends</li>
         </ul>
         <button className="wg-google-btn" type="button" onClick={handleSignIn} disabled={signing}>
-          <span className="wg-google-glyph" aria-hidden="true">G</span>
+          <svg className="wg-google-glyph" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z" fill="currentColor" />
+          </svg>
           <span>{signing ? "Signing in…" : "Sign in with Google"}</span>
         </button>
         <div className="wg-profile-mini-row">

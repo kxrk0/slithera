@@ -10,7 +10,8 @@ type CenterPanelProps = {
 
 export function CenterPanel({ name, onNameChange, onStart, onSettings, onStats, onHowToPlay, latencyMs }: CenterPanelProps) {
   const ping = typeof latencyMs === "number" && latencyMs > 0 ? `${latencyMs}ms` : "—";
-  const trimmed = name.trim() || "You";
+  const trimmed = name.trim();
+  const canStart = trimmed.length > 0;
   return (
     <section className="wg-center-panel" aria-label="Arena entry">
       <div className="wg-brand-block">
@@ -30,15 +31,23 @@ export function CenterPanel({ name, onNameChange, onStart, onSettings, onStats, 
           className="wg-name-input"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
+          onKeyDown={(event) => { if (event.key === "Enter" && canStart) onStart(); }}
           maxLength={16}
+          placeholder="Choose your name…"
           aria-label="Player name"
+          autoFocus
         />
         <span className="wg-name-meta">{name.length}/16</span>
       </label>
-      <button type="button" className="wg-play-btn" onClick={onStart}>
+      <button
+        type="button"
+        className={canStart ? "wg-play-btn" : "wg-play-btn disabled"}
+        onClick={() => { if (canStart) onStart(); }}
+        disabled={!canStart}
+      >
         <div>
-          <small>BEGIN THE ARENA</small>
-          <span>Enter as {trimmed}</span>
+          <small>{canStart ? "BEGIN THE ARENA" : "ENTER A NAME TO BEGIN"}</small>
+          <span>{canStart ? `Enter as ${trimmed}` : "Awaiting your sigil"}</span>
         </div>
         <span className="arrow-circle">→</span>
       </button>

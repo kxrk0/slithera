@@ -39,11 +39,13 @@ export function signInWithGoogle(name?: string): Promise<AuthUser> {
   return new Promise((resolve) => {
     window.setTimeout(() => {
       const safeName = (name && name.trim()) || "Player";
+      // Deterministic id from name — so the same player keeps their inventory across sign-ins.
+      const idSlug = safeName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "player";
       const user: AuthUser = {
-        id: "google_" + Math.random().toString(36).slice(2, 10),
+        id: `google_${idSlug}`,
         name: safeName,
         avatar: pickAvatarFor(safeName),
-        email: `${safeName.toLowerCase().replace(/\s+/g, ".")}@gmail.example`,
+        email: `${idSlug}@gmail.example`,
         signedInAt: Date.now()
       };
       saveAuthUser(user);

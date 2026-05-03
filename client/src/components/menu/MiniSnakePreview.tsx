@@ -17,8 +17,7 @@ export function MiniSnakePreview({ skinId, hatId }: MiniSnakePreviewProps) {
       const c = `hsl(${hue}, 80%, 60%)`;
       return {
         background: c,
-        boxShadow: `0 0 14px ${c}90, inset -3px -4px 0 rgba(0,0,0,0.18)`,
-        animationName: "wg-mini-rainbow"
+        boxShadow: `0 0 14px ${c}90, inset -3px -4px 0 rgba(0,0,0,0.18)`
       };
     }
     return {

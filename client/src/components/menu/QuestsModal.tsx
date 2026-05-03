@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../../lib/auth";
+import { loadAuthUser, useAuth } from "../../lib/auth";
 import { addCoins } from "../../lib/coins";
 import { loadDaily, formatCountdown, secondsUntilMidnight } from "../../lib/daily";
 import { addXp } from "../../lib/xp";
@@ -7,11 +7,16 @@ import { WardrobeModal } from "./WardrobeModal";
 
 type QuestsModalProps = { open: boolean; onClose: () => void };
 
-const CLAIM_KEY = "slithera-quest-claims";
+function claimKey(): string | null {
+  const user = loadAuthUser();
+  return user ? `slithera-quest-claims:${user.id}` : null;
+}
 
 function loadClaims(): Set<string> {
+  const key = claimKey();
+  if (!key) return new Set();
   try {
-    const raw = window.localStorage.getItem(CLAIM_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return new Set();
     const arr = JSON.parse(raw) as string[];
     return new Set(Array.isArray(arr) ? arr : []);
@@ -19,8 +24,10 @@ function loadClaims(): Set<string> {
 }
 
 function saveClaims(claims: Set<string>): void {
+  const key = claimKey();
+  if (!key) return;
   try {
-    window.localStorage.setItem(CLAIM_KEY, JSON.stringify([...claims]));
+    window.localStorage.setItem(key, JSON.stringify([...claims]));
   } catch { /* ignore */ }
 }
 

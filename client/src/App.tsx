@@ -14,7 +14,7 @@ export default function App() {
   const autoStart = new URLSearchParams(window.location.search).get("play") === "1";
   const [started, setStarted] = useState(autoStart);
   const [paused, setPaused] = useState(!autoStart);
-  const [name, setName] = useState("You");
+  const [name, setName] = useState("");
   const [skinId, setSkinId] = useState<string>(SNAKE_SKINS[0].id);
   const [hatId, setHatId] = useState("none");
   const [ropeAccessoryId, setRopeAccessoryId] = useState("none");

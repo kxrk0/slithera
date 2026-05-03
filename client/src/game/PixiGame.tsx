@@ -382,25 +382,26 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   graphics.circle(head.x + nose.x + eyeOffset.x + 1 * growth, head.y + nose.y + eyeOffset.y - 1 * growth, 1.3 * growth).fill(0xffffff);
   graphics.circle(head.x + nose.x - eyeOffset.x + 1 * growth, head.y + nose.y - eyeOffset.y - 1 * growth, 1.3 * growth).fill(0xffffff);
 
-  // Hat (oriented with heading, sitting just above the head)
+  // Hat (sitting just above the head, in screen space — slither.io style)
+  let hatHeightPx = 0;
   if (player.hatId && player.hatId !== "none") {
     const hatOption = HAT_OPTIONS.find((h) => h.id === player.hatId);
     const hatMark = hatOption?.mark;
     if (hatMark) {
-      const hatOffset = headRadius * 1.15;
-      const hx = head.x - Math.sin(player.heading) * hatOffset * 0.0 + 0; // offset purely upward in screen space
-      const hy = head.y - hatOffset;
+      const hatFontSize = 22 * growth;
+      const hatOffset = headRadius * 1.05;
       const hat = new Text({
         text: hatMark,
         style: {
           fontFamily: "system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif",
-          fontSize: 22 * growth,
+          fontSize: hatFontSize,
           fill: 0xffffff
         }
       });
-      hat.anchor.set(0.5, 0.7);
-      hat.position.set(hx, hy);
+      hat.anchor.set(0.5, 0.95);
+      hat.position.set(head.x, head.y - hatOffset);
       labels.addChild(hat);
+      hatHeightPx = hatFontSize + hatOffset * 0.4;
     }
   }
 
@@ -411,7 +412,7 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
     drawRopeAccessory(graphics, player.ropeAccessoryId, rope.x, rope.y, accent);
   }
 
-  // Label
+  // Label — sits above the hat (or directly above head if no hat)
   const labelText = new Text({
     text: player.name,
     style: {
@@ -422,8 +423,9 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
       stroke: { color: 0x0e0a06, width: 3 }
     }
   });
-  labelText.anchor.set(0.5);
-  labelText.position.set(head.x, head.y - 32 * growth);
+  labelText.anchor.set(0.5, 1);
+  const baseLabelOffset = headRadius + 14;
+  labelText.position.set(head.x, head.y - baseLabelOffset - hatHeightPx);
   labels.addChild(labelText);
 }
 
