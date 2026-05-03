@@ -8,6 +8,7 @@ import { CharmPicker } from "./CharmPicker";
 import { HatPicker } from "./HatPicker";
 import { LifetimePanel } from "./LifetimePanel";
 import { LoadoutPanel } from "./LoadoutPanel";
+import { SettingsModal } from "./SettingsModal";
 import { SkinPicker } from "./SkinPicker";
 
 type WarmGoldMenuProps = {
@@ -32,6 +33,7 @@ export function WarmGoldMenu({
   onNameChange, onSkinChange, onHatChange, onRopeAccessoryChange, onStart
 }: WarmGoldMenuProps) {
   const [modal, setModal] = useState<ModalKind>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const stats = useMemo(() => loadStats(), []);
   const daily = useMemo(() => loadDaily(), []);
   const [countdown, setCountdown] = useState(() => secondsUntilMidnight());
@@ -65,7 +67,7 @@ export function WarmGoldMenu({
           latencyMs={latencyMs}
           onNameChange={onNameChange}
           onStart={onStart}
-          onSettings={noop}
+          onSettings={() => setSettingsOpen(true)}
           onStats={noop}
           onHowToPlay={noop}
         />
@@ -95,6 +97,7 @@ export function WarmGoldMenu({
         ropeAccessoryId={ropeAccessoryId}
         onChange={onRopeAccessoryChange}
       />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </section>
   );
 }

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Crown, Expand, RotateCcw, Settings, Zap } from "lucide-react";
 import { WORLD_HEIGHT, WORLD_WIDTH } from "../../../shared/constants";
 import type { PlayerState, ServerSnapshot } from "../../../shared/types";
+import { SettingsModal } from "./menu/SettingsModal";
 
 type GameHudProps = {
   status: string;
@@ -33,12 +35,13 @@ export function GameHud({
   const leaderboard = snapshot?.leaderboard ?? [];
   const score = player?.score ?? 0;
   const killerName = useKillerName(player);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="wg-hud" aria-live="polite">
       {/* Top-left: settings + arena status */}
       <section className="wg-hud-topleft">
-        <button className="wg-hud-settings" type="button" aria-label="Settings">
+        <button className="wg-hud-settings" type="button" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
           <Settings size={16} />
         </button>
         <div className="wg-hud-arena">
@@ -150,6 +153,8 @@ export function GameHud({
       <button className="wg-hud-fullscreen" type="button" aria-label="Fullscreen" onClick={toggleFullscreen}>
         <Expand size={14} />
       </button>
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
