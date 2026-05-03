@@ -1738,3 +1738,483 @@ button {
   line-height: 1.4;
 }
 .wg-news-text b { color: var(--wg-ember); font-family: var(--wg-mono); font-weight: 700; }
+
+/* ============ Warm Gold In-Game HUD ============ */
+.wg-hud {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  font-family: var(--wg-sans);
+  color: var(--wg-cream);
+}
+.wg-hud > * { pointer-events: auto; }
+.wg-hud button {
+  font: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+}
+
+/* Top-left: settings + arena status */
+.wg-hud-topleft {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  top: max(18px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.wg-hud-settings {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(20, 14, 8, 0.7);
+  border: 1px solid rgba(240, 181, 64, 0.35);
+  color: var(--wg-cream-dim);
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: all 200ms var(--wg-ease-soft);
+}
+.wg-hud-settings:hover {
+  border-color: var(--wg-gold);
+  color: var(--wg-gold);
+  transform: rotate(45deg);
+}
+.wg-hud-arena {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(20, 14, 8, 0.65);
+  border: 1px solid rgba(245, 233, 211, 0.08);
+  border-radius: 999px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.wg-hud-arena strong {
+  display: block;
+  font-family: var(--wg-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--wg-cream);
+  line-height: 1;
+}
+.wg-hud-arena span {
+  display: block;
+  font-family: var(--wg-mono);
+  font-size: 9px;
+  color: var(--wg-cream-mute);
+  letter-spacing: 0.1em;
+  margin-top: 3px;
+  font-weight: 700;
+}
+.wg-hud-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5dd0a3;
+  box-shadow: 0 0 8px #5dd0a3;
+  flex-shrink: 0;
+}
+.wg-hud-status-dot.reconnecting,
+.wg-hud-status-dot.connecting { background: var(--wg-gold); box-shadow: 0 0 8px var(--wg-gold); }
+.wg-hud-status-dot.offline { background: var(--wg-ember); box-shadow: 0 0 8px var(--wg-ember); }
+
+/* Top-center: brand */
+.wg-hud-brand {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.wg-hud-brand h1 {
+  margin: 0;
+  font-family: var(--wg-serif);
+  font-weight: 900;
+  font-size: 28px;
+  font-variation-settings: 'opsz' 144;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  background: linear-gradient(170deg, #fff8e7 0%, var(--wg-gold) 60%, var(--wg-amber) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 24px rgba(240, 181, 64, 0.18);
+}
+.wg-hud-brand h1 .amp {
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.7em;
+  vertical-align: 0.05em;
+  margin: 0 -0.05em;
+}
+
+/* Top-right: leaderboard */
+.wg-hud-leaderboard {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  width: min(280px, calc(100vw - 40px));
+  background: rgba(20, 14, 8, 0.65);
+  border: 1px solid rgba(245, 233, 211, 0.08);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+}
+.wg-hud-leaderboard header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--wg-gold);
+  font-family: var(--wg-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(245, 233, 211, 0.06);
+}
+.wg-hud-leaderboard ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.wg-hud-leaderboard li {
+  display: grid;
+  grid-template-columns: 18px 8px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--wg-cream);
+  padding: 3px 0;
+}
+.wg-hud-leaderboard .rank {
+  font-family: var(--wg-mono);
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--wg-cream-mute);
+}
+.wg-hud-leaderboard li:nth-child(1) .rank { color: var(--wg-gold); }
+.wg-hud-leaderboard li:nth-child(2) .rank { color: var(--wg-cream); }
+.wg-hud-leaderboard li:nth-child(3) .rank { color: var(--wg-amber); }
+.wg-hud-leaderboard .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+.wg-hud-leaderboard .name {
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wg-hud-leaderboard .points {
+  font-family: var(--wg-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--wg-cream);
+  font-variant-numeric: tabular-nums;
+}
+.wg-hud-leaderboard li.you {
+  background: linear-gradient(90deg, rgba(240, 181, 64, 0.12), transparent);
+  border-left: 2px solid var(--wg-gold);
+  padding-left: 6px;
+  margin-left: -6px;
+  border-radius: 4px;
+}
+.wg-hud-leaderboard li.you .name,
+.wg-hud-leaderboard li.you .points { color: var(--wg-gold); }
+
+/* Bottom-left: score */
+.wg-hud-score {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 20px;
+  background: rgba(20, 14, 8, 0.65);
+  border: 1px solid rgba(245, 233, 211, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.wg-hud-score .lbl {
+  font-family: var(--wg-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--wg-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.wg-hud-score strong {
+  font-family: var(--wg-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 28px;
+  font-variation-settings: 'opsz' 144;
+  color: var(--wg-cream);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Perf indicator */
+.wg-hud-perf {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(20, 14, 8, 0.6);
+  border: 1px solid rgba(245, 233, 211, 0.06);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+.wg-hud-perf strong {
+  font-family: var(--wg-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--wg-cream);
+}
+.wg-hud-perf span {
+  font-family: var(--wg-mono);
+  font-size: 8px;
+  color: var(--wg-cream-mute);
+  letter-spacing: 0.15em;
+  font-weight: 700;
+}
+
+/* Minimap */
+.wg-hud-minimap {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  width: 180px;
+  aspect-ratio: 1;
+  border: 1px solid rgba(240, 181, 64, 0.35);
+  border-radius: 50%;
+  background: rgba(20, 14, 8, 0.55);
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.wg-hud-minimap-grid {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  background-image:
+    linear-gradient(rgba(240, 181, 64, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 181, 64, 0.06) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.wg-hud-minimap-grid i,
+.wg-hud-minimap-grid b {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+.wg-hud-minimap-grid b {
+  width: 7px;
+  height: 7px;
+  background: transparent;
+  border: 2px solid;
+}
+.wg-hud-minimap-grid b.me {
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  border-color: var(--wg-gold) !important;
+}
+
+/* Death overlay */
+.wg-hud-death {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(380px, calc(100vw - 40px));
+  padding: 28px 30px;
+  background: rgba(14, 10, 6, 0.92);
+  border: 1px solid rgba(232, 90, 79, 0.4);
+  border-radius: 18px;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 30px 80px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(232, 90, 79, 0.15);
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  animation: wg-modal-rise 600ms var(--wg-ease-soft);
+  position: fixed;
+  z-index: 50;
+}
+.wg-hud-death::before, .wg-hud-death::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--wg-ember);
+  pointer-events: none;
+}
+.wg-hud-death::before { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
+.wg-hud-death::after  { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
+.wg-hud-death-eyebrow {
+  font-family: var(--wg-mono);
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: var(--wg-ember);
+  font-weight: 700;
+}
+.wg-hud-death-title {
+  font-family: var(--wg-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 30px;
+  font-variation-settings: 'opsz' 144;
+  color: var(--wg-cream);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.wg-hud-death-title em {
+  color: var(--wg-gold);
+  font-style: italic;
+}
+.wg-hud-death-meta {
+  font-family: var(--wg-mono);
+  font-size: 11px;
+  color: var(--wg-cream-mute);
+  letter-spacing: 0.2em;
+  font-weight: 700;
+}
+.wg-hud-death-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+}
+.wg-hud-btn-primary {
+  padding: 12px 22px;
+  background: linear-gradient(135deg, #fff8e7, var(--wg-cream));
+  color: var(--wg-coffee);
+  border-radius: 12px;
+  font-family: var(--wg-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 -2px 0 rgba(180, 140, 80, 0.35) inset,
+    0 8px 22px rgba(240, 181, 64, 0.25);
+  transition: all 200ms var(--wg-ease-snap);
+}
+.wg-hud-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 -2px 0 rgba(180, 140, 80, 0.35) inset,
+    0 12px 28px rgba(240, 181, 64, 0.4);
+}
+.wg-hud-btn-secondary {
+  padding: 12px 18px;
+  background: transparent;
+  border: 1px solid rgba(245, 233, 211, 0.18);
+  border-radius: 12px;
+  color: var(--wg-cream-dim);
+  font-family: var(--wg-sans);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: all 200ms var(--wg-ease-soft);
+}
+.wg-hud-btn-secondary:hover {
+  border-color: var(--wg-gold);
+  color: var(--wg-gold);
+}
+
+/* Touch boost (mobile) */
+.wg-hud-touch {
+  position: fixed;
+  right: 220px;
+  bottom: max(40px, env(safe-area-inset-bottom));
+  display: none; /* default hidden; show on mobile breakpoint below */
+}
+.wg-hud-boost {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 2px solid rgba(240, 181, 64, 0.4);
+  background: rgba(20, 14, 8, 0.55);
+  color: var(--wg-gold);
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Fullscreen button */
+.wg-hud-fullscreen {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 233, 211, 0.15);
+  background: rgba(20, 14, 8, 0.6);
+  color: var(--wg-cream-dim);
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(8px);
+  transition: all 200ms;
+}
+.wg-hud-fullscreen:hover {
+  border-color: var(--wg-gold);
+  color: var(--wg-gold);
+}
+
+/* Mobile/small screens */
+@media (max-width: 980px) {
+  .wg-hud-leaderboard { display: none; }
+  .wg-hud-perf { top: 56px; }
+  .wg-hud-minimap { width: 120px; }
+  .wg-hud-touch { display: block; }
+}
+@media (max-width: 640px) {
+  .wg-hud-arena strong { font-size: 12px; }
+  .wg-hud-arena span { font-size: 8px; }
+  .wg-hud-brand h1 { font-size: 22px; }
+  .wg-hud-score { padding: 8px 14px; }
+  .wg-hud-score strong { font-size: 22px; }
+  .wg-hud-touch { right: 140px; }
+  .wg-hud-boost { width: 64px; height: 64px; }
+}
