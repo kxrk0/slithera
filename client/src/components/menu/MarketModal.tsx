@@ -9,7 +9,7 @@ import { MARKET_ITEMS, type MarketItem, type MarketCategory } from "../../lib/ma
 import { CRATES } from "../../lib/crates";
 import { RARITY_COLOR, type Rarity } from "../../../../shared/constants";
 import { CrateModal } from "./CrateModal";
-import { ItemIcon } from "./icons/ItemIcon";
+import { SnakePreview } from "./icons/SnakePreview";
 
 type MarketModalProps = { open: boolean; onClose: () => void };
 type Tab = MarketCategory | "all" | "crates";
@@ -172,7 +172,7 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
                         onMouseLeave={() => setHoverId(null)}
                       >
                         <div style={{ ...S.rarityStripe, background: rc, opacity: isOwned ? 0.4 : 0.85 }} />
-                        <ItemIcon itemId={item.id} rarity={item.rarity as Rarity} size={42} />
+                        <SnakePreview itemId={item.id} category={item.category} rarity={item.rarity as Rarity} size={72} />
                         <div style={S.cardName}>{item.name}</div>
                         <div style={{ ...S.cardRarity, color: rc }}>{item.rarity.toUpperCase()}</div>
                         <div style={S.cardTagline}>{item.tagline}</div>
