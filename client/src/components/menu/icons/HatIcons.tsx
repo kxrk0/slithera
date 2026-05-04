@@ -497,7 +497,7 @@ export function HelmIcon({ size }: S) {
       <path d="M 20,18 Q 26,16 32,18" stroke="white" strokeWidth="1.5" opacity="0.25" fill="none">
         <animate attributeName="opacity" values="0.1;0.3;0.1" dur="3.5s" repeatCount="indefinite"/>
       </path>
-      <path d="M 12" y1="26" x2="14" y2="36" stroke="white" strokeWidth="0.8" opacity="0.1"/>
+      <line x1="12" y1="26" x2="14" y2="36" stroke="white" strokeWidth="0.8" opacity="0.1"/>
     </svg>
   );
 }

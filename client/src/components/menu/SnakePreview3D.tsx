@@ -16,8 +16,8 @@ const HEAD_X = 430;
 const TAIL_X = 90;
 const BASELINE_Y = 210;
 const SEGMENTS = 14;
-const BODY_R = 17;
-const HEAD_R = 22;
+const BODY_R = 19;
+const HEAD_R = 24;
 
 type PathNode = { x: number; y: number; r: number };
 type Skin = typeof SNAKE_SKINS[number];
@@ -112,6 +112,9 @@ function drawSnakePreview(
   const lotusT = now * 0.00035;
 
   // ----- Body fill: per-segment color strokes (head→tail) -----
+  const glowColor = isRainbow ? '#6699ff' : isLotus ? '#cc66ff' : skin.color;
+  ctx.shadowColor = glowColor;
+  ctx.shadowBlur = 22;
   for (let i = 0; i < N - 1; i += 1) {
     const a = path[i];
     const b = path[i + 1];
@@ -132,6 +135,7 @@ function drawSnakePreview(
     ctx.strokeStyle = color;
     ctx.stroke();
   }
+  ctx.shadowBlur = 0;
 
   // ----- Lotus shimmer: single polyline (no joint stacking) -----
   if (isLotus) {
@@ -178,6 +182,17 @@ function drawSnakePreview(
     ctx.arc(node.x - node.r * 0.18, node.y - node.r * 0.32, node.r * 0.45, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  // ----- Persistent top-of-body sheen (volumetric illusion) -----
+  ctx.globalAlpha = 0.14;
+  ctx.fillStyle = '#ffffff';
+  for (let i = 1; i < N - 1; i += 1) {
+    const nd = path[i];
+    ctx.beginPath();
+    ctx.arc(nd.x, nd.y - nd.r * 0.28, nd.r * 0.52, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
   // ----- HEAD -----
   const head = path[0];

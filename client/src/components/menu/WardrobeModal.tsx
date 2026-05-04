@@ -287,7 +287,7 @@ function ItemCard({
           itemId={itemId}
           category={category}
           rarity={rarity}
-          height={54}
+          height={62}
           bodySkinId={bodySkinId}
         />
       </div>
@@ -324,8 +324,8 @@ function ItemCard({
 
 const S: Record<string, React.CSSProperties> = {
   modal: {
-    // Override the CSS grid to give left more space
-    gridTemplateColumns: "1.15fr 1fr",
+    gridTemplateColumns: "1fr 1.1fr",
+    maxWidth: 980,
   },
   right: {
     display: "flex",
@@ -399,9 +399,9 @@ const S: Record<string, React.CSSProperties> = {
     scrollbarWidth: "thin",
     scrollbarColor: "rgba(240,181,64,0.15) transparent",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(115px, 1fr))",
-    gap: 8,
-    padding: "12px 14px 16px",
+    gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))",
+    gap: 12,
+    padding: "14px 18px 20px",
     alignContent: "start",
   },
 

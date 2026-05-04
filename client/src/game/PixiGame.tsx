@@ -609,8 +609,11 @@ export function PixiGame({ snapshot, playerId, paused, onInput, onPerf, recentEv
       const target = screenToWorld(pixi, worldContainer, aim);
       const heading = Math.atan2(target.y - head.y, target.x - head.x);
       const now = performance.now();
+      // Hard cap to 30 Hz regardless of frame rate. At 240 FPS without this cap
+      // we'd flood the server's 60 msg/sec rate-limit and trigger ping spikes.
+      if (now - lastInputAt < 1000 / 30) return;
       const changedEnough = Math.abs(angleDelta(heading, lastHeading)) > 0.018 || boost !== lastBoosting;
-      if (!changedEnough && now - lastInputAt < 1000 / 60) return;
+      if (!changedEnough) return;
       lastInputAt = now;
       lastHeading = heading;
       lastBoosting = boost;

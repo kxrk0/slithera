@@ -10,6 +10,7 @@ export interface SnakePreviewProps {
   rarity: Rarity;
   height?: number;       // CSS height in px (default 60)
   bodySkinId?: string;   // override body skin for wardrobe (shows your own skin)
+  hoverOnly?: boolean;   // draw static frame; animate only while mouse is over the card
 }
 
 // ── Internal canvas constants ─────────────────────────────────────────────────
@@ -47,8 +48,9 @@ const TRAIL_COLORS: Record<string, [string, string, string]> = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function SnakePreview({ itemId, category, rarity, height = 60, bodySkinId }: SnakePreviewProps) {
+export function SnakePreview({ itemId, category, rarity, height = 60, bodySkinId, hoverOnly = false }: SnakePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Resolve snake body skin
   const skinLookup = category === "skin" ? itemId.slice(5) : (bodySkinId ?? null);
@@ -61,15 +63,51 @@ export function SnakePreview({ itemId, category, rarity, height = 60, bodySkinId
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let rafId = 0;
     let alive = true;
-    let visible = false;
 
-    // Only draw when element is in viewport (perf: market grid can have 60+ canvases)
+    // Draw a stable static frame (t=0 gives a nice S-curve pose)
+    const drawStatic = () => {
+      ctx.clearRect(0, 0, CW, CH);
+      drawFrame(ctx, 0, skinData, isRainbow, isLotus, category, baselineY, trailPal);
+    };
+
+    if (hoverOnly) {
+      // ── Hover-only mode: zero RAF callbacks when idle ──────────────
+      drawStatic();
+
+      const startAnim = () => {
+        const tick = (now: number) => {
+          if (!alive) return;
+          ctx.clearRect(0, 0, CW, CH);
+          drawFrame(ctx, now, skinData, isRainbow, isLotus, category, baselineY, trailPal);
+          rafId = requestAnimationFrame(tick);
+        };
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(tick);
+      };
+      const stopAnim = () => {
+        cancelAnimationFrame(rafId);
+        drawStatic();
+      };
+
+      container.addEventListener("mouseenter", startAnim);
+      container.addEventListener("mouseleave", stopAnim);
+      return () => {
+        alive = false;
+        cancelAnimationFrame(rafId);
+        container.removeEventListener("mouseenter", startAnim);
+        container.removeEventListener("mouseleave", stopAnim);
+      };
+    }
+
+    // ── Always-animate mode: pause when scrolled off-screen ──────────
+    let visible = false;
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0.01 });
     io.observe(canvas);
 
@@ -88,7 +126,7 @@ export function SnakePreview({ itemId, category, rarity, height = 60, bodySkinId
       io.disconnect();
       cancelAnimationFrame(rafId);
     };
-  }, [skinData?.id, isRainbow, isLotus, category, baselineY, trailPal.join()]);
+  }, [skinData?.id, isRainbow, isLotus, category, baselineY, trailPal.join(), hoverOnly]);
 
   // CSS scale: map internal canvas coords → CSS pixels
   const sc = height / CH;
@@ -110,7 +148,7 @@ export function SnakePreview({ itemId, category, rarity, height = 60, bodySkinId
   const showCharm = category === "charm" && !itemId.endsWith(".none");
 
   return (
-    <div style={{ position: "relative", width: "100%", height, flexShrink: 0, overflow: "visible" }}>
+    <div ref={containerRef} style={{ position: "relative", width: "100%", height, flexShrink: 0, overflow: "visible" }}>
       <canvas
         ref={canvasRef}
         width={CW}
