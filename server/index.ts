@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -16,6 +16,7 @@ const projectRoot = __dirname.includes(`dist-server${path.sep}server`)
 const distRoot = path.join(projectRoot, "dist");
 const port = Number(process.env.PORT ?? 8787);
 const startedAt = Date.now();
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "";
 
 // Structured logger — every line a parseable JSON object
 function log(event: string, fields: Record<string, unknown> = {}): void {
@@ -52,12 +53,16 @@ function consumeToken(socket: WebSocket): boolean {
 const world = createWorld(Date.now() % 100000);
 const sockets = new Map<WebSocket, string>();
 const playerSockets = new Map<string, WebSocket>(); // reverse map: playerId → socket
+const playerUids = new Map<string, string>();        // playerId → Firebase UID
 const lastEmoteAt = new Map<string, number>();
 const lastChatAt = new Map<string, number>();
 // party code → ordered list of playerIds (first = leader)
 const parties = new Map<string, string[]>();
 // playerId → party code
 const playerToParty = new Map<string, string>();
+// runtime ban lists (cleared on restart; persist via external tooling if needed)
+const bannedUids = new Set<string>();
+const bannedIps = new Set<string>();
 let shuttingDown = false;
 
 function generatePartyCode(): string {
@@ -89,6 +94,29 @@ function buildPartyState(code: string): ServerMessage {
   return { type: "party_state", code, members };
 }
 
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
+
+function checkAdmin(req: IncomingMessage, res: ServerResponse): boolean {
+  if (!ADMIN_KEY) {
+    res.writeHead(503, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: "ADMIN_KEY not configured on server" }));
+    return false;
+  }
+  if (req.headers["authorization"] !== `Bearer ${ADMIN_KEY}`) {
+    res.writeHead(401, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: "Unauthorized" }));
+    return false;
+  }
+  return true;
+}
+
 function leaveParty(playerId: string): void {
   const code = playerToParty.get(playerId);
   if (!code) return;
@@ -107,6 +135,124 @@ function leaveParty(playerId: string): void {
   sendToPlayer(playerId, { type: "party_state", code: null, members: [] });
 }
 const server = createServer(async (request, response) => {
+  if (request.url?.startsWith("/admin")) {
+    if (!checkAdmin(request, response)) return;
+
+    if (request.method === "GET" && request.url === "/admin/state") {
+      const players = [...world.players.values()];
+      const body = {
+        ok: true,
+        uptimeSec: Math.floor((Date.now() - startedAt) / 1000),
+        tick: world.tick,
+        memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        players: players.filter((p) => !p.bot).map((p) => ({
+          id: p.id,
+          name: p.name,
+          uid: playerUids.get(p.id) ?? null,
+          alive: p.alive,
+          score: Math.floor(p.score),
+          kills: p.kills,
+          partyId: p.partyId ?? null,
+          isDev: p.isDev ?? false
+        })),
+        bots: players.filter((p) => p.bot).length,
+        food: world.food.size,
+        parties: [...parties.entries()].map(([code, members]) => ({ code, members })),
+        bannedUids: [...bannedUids],
+        bannedIps: [...bannedIps]
+      };
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify(body, null, 2));
+      return;
+    }
+
+    let data: Record<string, unknown> = {};
+    if (request.method === "POST") {
+      const raw = await readBody(request);
+      if (raw) {
+        try { data = JSON.parse(raw) as Record<string, unknown>; }
+        catch {
+          response.writeHead(400, { "content-type": "application/json" });
+          response.end(JSON.stringify({ ok: false, error: "Invalid JSON body" }));
+          return;
+        }
+      }
+    }
+
+    if (request.method === "POST" && request.url === "/admin/kick") {
+      const targetId = String(data.playerId ?? "");
+      const socket = playerSockets.get(targetId);
+      if (!socket) {
+        response.writeHead(404, { "content-type": "application/json" });
+        response.end(JSON.stringify({ ok: false, error: "Player not found" }));
+        return;
+      }
+      send(socket, { type: "error", message: "You were kicked by an admin." });
+      socket.close(1008, "Kicked by admin");
+      log("admin.kick", { targetId });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/admin/broadcast") {
+      const text = String(data.text ?? "").trim().slice(0, 200);
+      if (!text) {
+        response.writeHead(400, { "content-type": "application/json" });
+        response.end(JSON.stringify({ ok: false, error: "text is required" }));
+        return;
+      }
+      const now = Date.now();
+      broadcast({
+        type: "chat_message",
+        message: { id: `admin_${now}`, playerId: "admin", name: "[SERVER]", color: "#ff6b35", text, scope: "global", ts: now }
+      });
+      log("admin.broadcast", { text });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/admin/ban") {
+      const uid = String(data.uid ?? "").trim();
+      const ip = String(data.ip ?? "").trim();
+      if (!uid && !ip) {
+        response.writeHead(400, { "content-type": "application/json" });
+        response.end(JSON.stringify({ ok: false, error: "uid or ip required" }));
+        return;
+      }
+      if (uid) bannedUids.add(uid);
+      if (ip) bannedIps.add(ip);
+      // Disconnect any currently-connected matching player
+      for (const [playerId, sock] of playerSockets) {
+        const state = socketStates.get(sock);
+        if ((uid && playerUids.get(playerId) === uid) || (ip && state?.ip === ip)) {
+          send(sock, { type: "error", message: "You have been banned from this server." });
+          sock.close(1008, "Banned");
+        }
+      }
+      log("admin.ban", { uid: uid || null, ip: ip || null });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/admin/unban") {
+      const uid = String(data.uid ?? "").trim();
+      const ip = String(data.ip ?? "").trim();
+      if (uid) bannedUids.delete(uid);
+      if (ip) bannedIps.delete(ip);
+      log("admin.unban", { uid: uid || null, ip: ip || null });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    response.writeHead(404, { "content-type": "application/json" });
+    response.end(JSON.stringify({ ok: false, error: "Unknown admin route" }));
+    return;
+  }
+
   if (request.url?.startsWith("/health")) {
     const players = [...world.players.values()];
     const body = {
@@ -198,10 +344,16 @@ wss.on("connection", (socket, request) => {
     }
 
     if (message.type === "join") {
-      const id = `human_${randomUUID()}`;
+      const ip = socketStates.get(socket)?.ip ?? "";
       const uid = typeof message.uid === "string" && message.uid.length > 0 && message.uid.length < 200
         ? message.uid
         : undefined;
+      if (bannedIps.has(ip) || (uid && bannedUids.has(uid))) {
+        send(socket, { type: "error", message: "You are banned from this server." });
+        socket.close(1008, "Banned");
+        return;
+      }
+      const id = `human_${randomUUID()}`;
       const player = createPlayer(
         world,
         id,
@@ -214,6 +366,7 @@ wss.on("connection", (socket, request) => {
       );
       sockets.set(socket, player.id);
       playerSockets.set(player.id, socket);
+      if (uid) playerUids.set(player.id, uid);
       log("player.join", {
         playerId: player.id,
         name: player.name,
@@ -360,6 +513,7 @@ wss.on("connection", (socket, request) => {
       lastEmoteAt.delete(playerId);
       lastChatAt.delete(playerId);
       playerSockets.delete(playerId);
+      playerUids.delete(playerId);
       log("player.leave", { playerId, humans: [...world.players.values()].filter((p) => !p.bot).length });
     } else {
       log("ws.disconnect", { ip });

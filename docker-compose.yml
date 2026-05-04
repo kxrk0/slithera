@@ -20,4 +20,5 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      ADMIN_KEY: ${ADMIN_KEY:-}
     restart: unless-stopped
