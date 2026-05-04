@@ -34,7 +34,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH
 } from "./constants.js";
-import { canUseCharmFor, canUseSkinFor } from "./exclusive.js";
+import { canUseCharmFor, canUseSkinFor, isDevUid } from "./exclusive.js";
 import { sanitizePlayerName } from "./names.js";
 import { clamp, clampToWorld, distance, distanceSq, headingToVector, randomPoint, rotateToward, seededRandom } from "./math.js";
 import type { ClientInput, FoodPellet, GameEvent, LeaderboardEntry, PlayerState, ServerSnapshot, Vec2 } from "./types.js";
@@ -52,6 +52,31 @@ export type World = {
 };
 
 let entityCounter = 0;
+
+const SAFE_SPAWN_MIN_DIST = 320;
+const SAFE_SPAWN_ATTEMPTS = 16;
+
+function safeSpawnPoint(world: World, margin = 160): Vec2 {
+  let best: Vec2 | undefined;
+  let bestMinDist = -1;
+
+  for (let attempt = 0; attempt < SAFE_SPAWN_ATTEMPTS; attempt++) {
+    const candidate = randomPoint(world.rng, margin);
+    let minDist = Infinity;
+    for (const player of world.players.values()) {
+      if (!player.alive || player.segments.length === 0) continue;
+      const d = distance(candidate, player.segments[0]);
+      if (d < minDist) minDist = d;
+    }
+    if (minDist > bestMinDist) {
+      bestMinDist = minDist;
+      best = candidate;
+    }
+    if (minDist >= SAFE_SPAWN_MIN_DIST) break;
+  }
+
+  return best ?? randomPoint(world.rng, margin);
+}
 
 export function createWorld(seed = 1337): World {
   const world: World = {
@@ -87,7 +112,7 @@ export function createPlayer(
     ? ropeAccessoryId
     : undefined;
   const safeHat = hatId; // hats currently have no exclusivity table
-  const spawn = randomPoint(world.rng);
+  const spawn = safeSpawnPoint(world);
   const heading = world.rng() * Math.PI * 2 - Math.PI;
   const player: PlayerState = {
     id,
@@ -107,7 +132,8 @@ export function createPlayer(
     segmentProgress: 0,
     kills: 0,
     ropeAccessoryId: safeRope,
-    hatId: safeHat
+    hatId: safeHat,
+    isDev: isDevUid(uid)
   };
 
   world.players.set(id, player);
@@ -134,7 +160,7 @@ export function respawn(world: World, id: string, now = Date.now()): PlayerState
   if (player.alive) return player;
   if (player.deathAt && now - player.deathAt < RESPAWN_DELAY_MS) return undefined;
 
-  const spawn = randomPoint(world.rng);
+  const spawn = safeSpawnPoint(world);
   const heading = world.rng() * Math.PI * 2 - Math.PI;
   player.score = MIN_SCORE;
   player.boost = BOOST_MAX;
@@ -226,7 +252,8 @@ export function makeLeaderboard(world: World, localId?: string): LeaderboardEntr
       color: player.color,
       hatId: player.hatId,
       skinId: player.skinId,
-      you: player.id === localId
+      you: player.id === localId,
+      isDev: player.isDev
     }));
 }
 

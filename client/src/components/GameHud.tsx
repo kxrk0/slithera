@@ -140,7 +140,10 @@ export function GameHud({
                   {hatGlyph ? <span className="lb-hat" aria-hidden="true">{hatGlyph}</span> : null}
                   {entry.name}
                 </span>
-                <span className="points">{formatScore(entry.score)}</span>
+                <span className="points">
+                  {formatScore(entry.score)}
+                  {entry.isDev ? <span className="lb-dev-tag" aria-label="Developer">DEV</span> : null}
+                </span>
               </li>
             );
           })}

@@ -450,6 +450,10 @@ export function PixiGame({ snapshot, playerId, paused, onInput, onPerf, recentEv
       }
       food.clear();
       snakes.clear();
+      // Destroy every label before removing — Text objects hold GPU textures that must be freed
+      for (const child of labels.children) {
+        child.destroy();
+      }
       labels.removeChildren();
 
       if (state) {
@@ -1110,8 +1114,25 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
   });
   labelText.anchor.set(0.5, 1);
   const baseLabelOffset = headRadius + 14;
-  labelText.position.set(head.x, head.y - baseLabelOffset - hatHeightPx);
+  const labelY = head.y - baseLabelOffset - hatHeightPx;
+  labelText.position.set(head.x, labelY);
   labels.addChild(labelText);
+
+  if (player.isDev) {
+    const devLabel = new Text({
+      text: "DEV",
+      style: {
+        fill: "#ff3b30",
+        fontFamily: "Outfit, system-ui, sans-serif",
+        fontSize: 10,
+        fontWeight: "900",
+        stroke: { color: 0x0e0a06, width: 2 }
+      }
+    });
+    devLabel.anchor.set(1, 1);
+    devLabel.position.set(head.x - labelText.width / 2 - 5, labelY);
+    labels.addChild(devLabel);
+  }
 }
 
 function segmentsWithGrowingTail(player: PlayerState): Vec2[] {

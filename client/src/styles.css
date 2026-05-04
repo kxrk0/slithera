@@ -1993,6 +1993,21 @@ button {
   font-weight: 700;
   color: var(--wg-cream);
   font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.lb-dev-tag {
+  font-family: var(--wg-mono);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #ff4433;
+  border: 1px solid rgba(255, 68, 51, 0.45);
+  border-radius: 3px;
+  padding: 1px 3px;
+  opacity: 0.88;
+  line-height: 1.1;
 }
 .wg-hud-leaderboard li.you {
   background: linear-gradient(90deg, rgba(240, 181, 64, 0.12), transparent);

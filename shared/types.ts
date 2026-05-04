@@ -29,6 +29,7 @@ export type PlayerState = {
   lastKillerName?: string;
   ropeAccessoryId?: string;
   hatId?: string;
+  isDev?: boolean;
 };
 
 export type FoodPellet = Vec2 & {
@@ -50,6 +51,7 @@ export type LeaderboardEntry = {
   hatId?: string;
   skinId?: string;
   you?: boolean;
+  isDev?: boolean;
 };
 
 export type ClientInput = {

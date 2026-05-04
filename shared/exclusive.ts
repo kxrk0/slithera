@@ -9,6 +9,13 @@ export const EXCLUSIVE_CHARM_OWNERS: Record<string, string[]> = {
   "venus": ["zYTbPkl580S3kW3fvEg8gXfoRp83", "rQWCri0lm0YdFDCGanaf3RHZAZq1"]
 };
 
+// Developer UIDs — these players receive the DEV badge in-game and on the leaderboard.
+export const DEV_UIDS: readonly string[] = ["zYTbPkl580S3kW3fvEg8gXfoRp83"];
+
+export function isDevUid(uid: string | undefined): boolean {
+  return uid !== undefined && (DEV_UIDS as readonly string[]).includes(uid);
+}
+
 export function canUseSkinFor(skinId: string, uid: string | undefined): boolean {
   const allowed = EXCLUSIVE_SKIN_OWNERS[skinId];
   if (!allowed) return true;
