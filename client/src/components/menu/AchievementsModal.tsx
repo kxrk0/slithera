@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ACHIEVEMENTS, loadAchievements } from "../../lib/achievements";
 import { useAuth } from "../../lib/auth";
 import { useStats } from "../../lib/useEconomy";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type AchievementsModalProps = { open: boolean; onClose: () => void };
 

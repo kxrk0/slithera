@@ -5,7 +5,7 @@ import { canUseSkin, isExclusiveSkin } from "../../lib/exclusiveSkins";
 import { findMarketItemByRef, isFreeSkin } from "../../lib/marketCatalog";
 import { useInventoryItems } from "../../lib/useEconomy";
 import { SnakePreview3D } from "./SnakePreview3D";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type SkinPickerProps = {
   open: boolean;

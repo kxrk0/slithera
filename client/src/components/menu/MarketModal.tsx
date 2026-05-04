@@ -172,7 +172,7 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
                         onMouseLeave={() => setHoverId(null)}
                       >
                         <div style={{ ...S.rarityStripe, background: rc, opacity: isOwned ? 0.4 : 0.85 }} />
-                        <SnakePreview itemId={item.id} category={item.category} rarity={item.rarity as Rarity} size={72} />
+                        <SnakePreview itemId={item.id} category={item.category} rarity={item.rarity as Rarity} height={58} />
                         <div style={S.cardName}>{item.name}</div>
                         <div style={{ ...S.cardRarity, color: rc }}>{item.rarity.toUpperCase()}</div>
                         <div style={S.cardTagline}>{item.tagline}</div>

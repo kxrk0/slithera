@@ -3,7 +3,7 @@ import { HAT_OPTIONS } from "../../../../shared/constants";
 import { findMarketItemByRef, isFreeHat } from "../../lib/marketCatalog";
 import { useInventoryItems } from "../../lib/useEconomy";
 import { SnakePreview3D } from "./SnakePreview3D";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type HatPickerProps = {
   open: boolean;

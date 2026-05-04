@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../lib/auth";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type SocialModalProps = { open: boolean; onClose: () => void };
 

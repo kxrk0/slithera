@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocale, type Locale } from "../../lib/i18n";
 import { FPS_OPTIONS, loadSettings, saveSettings, type GameSettings } from "../../lib/settings";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type SettingsModalProps = {
   open: boolean;

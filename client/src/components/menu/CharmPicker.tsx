@@ -5,7 +5,7 @@ import { canUseCharm, isExclusiveCharm } from "../../lib/exclusiveSkins";
 import { findMarketItemByRef, isFreeCharm } from "../../lib/marketCatalog";
 import { useInventoryItems } from "../../lib/useEconomy";
 import { SnakePreview3D } from "./SnakePreview3D";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type CharmPickerProps = {
   open: boolean;

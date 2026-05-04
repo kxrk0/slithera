@@ -1,17 +1,38 @@
+import { useEffect, useRef } from "react";
 import { SNAKE_SKINS, type Rarity } from "../../../../../shared/constants";
 import { ItemIcon } from "./ItemIcon";
 
-type MarketCategory = "skin" | "hat" | "charm" | "trail";
+export type MarketCategory = "skin" | "hat" | "charm" | "trail";
 
-interface Props {
+export interface SnakePreviewProps {
   itemId: string;
   category: MarketCategory;
   rarity: Rarity;
-  size?: number;
+  height?: number;       // CSS height in px (default 60)
+  bodySkinId?: string;   // override body skin for wardrobe (shows your own skin)
 }
 
-// Trail particle colors per trail id
-const TRAIL_PALETTE: Record<string, [string, string, string]> = {
+// ── Internal canvas constants ─────────────────────────────────────────────────
+const CW = 288;          // internal canvas width
+const CH = 80;           // internal canvas height
+const HEAD_X = 236;      // head x in canvas space
+const TAIL_X = 52;       // tail x in canvas space
+const HEAD_R = 11;
+const BODY_R = 9;
+const SEG_N  = 8;
+
+// Y baseline per category (snake center line)
+const BASELINE: Record<MarketCategory, number> = {
+  skin:  42,   // centered
+  trail: 42,   // centered
+  hat:   52,   // lower → hat icon fits above
+  charm: 22,   // upper → charm hangs in lower half
+};
+
+type PathNode = { x: number; y: number; r: number };
+type SkinDef  = typeof SNAKE_SKINS[number];
+
+const TRAIL_COLORS: Record<string, [string, string, string]> = {
   "trail.sparkle":         ["#ffffff", "#fffde7", "#f8f0ff"],
   "trail.shadow-trail":    ["#7c3aed", "#4c1d95", "#a78bfa"],
   "trail.fire-trail":      ["#ff6000", "#ff9500", "#ffd000"],
@@ -24,187 +45,258 @@ const TRAIL_PALETTE: Record<string, [string, string, string]> = {
   "trail.aurora-trail":    ["#00e5ff", "#e040fb", "#69ffb4"],
 };
 
-// Standard S-curve: head top-right, tail bottom-left (skin, charm, trail)
-const STD = [
-  { x: 0.69, y: 0.22, r: 0.155 }, // head
-  { x: 0.58, y: 0.37, r: 0.128 },
-  { x: 0.46, y: 0.51, r: 0.124 },
-  { x: 0.33, y: 0.65, r: 0.120 },
-  { x: 0.22, y: 0.80, r: 0.108 }, // tail
-];
+// ── Component ─────────────────────────────────────────────────────────────────
 
-// Hat layout: snake shifted down so hat icon fits above head
-const HAT = [
-  { x: 0.67, y: 0.40, r: 0.155 }, // head — lower to give hat room
-  { x: 0.55, y: 0.54, r: 0.128 },
-  { x: 0.41, y: 0.67, r: 0.122 },
-  { x: 0.28, y: 0.82, r: 0.110 }, // tail
-];
+export function SnakePreview({ itemId, category, rarity, height = 60, bodySkinId }: SnakePreviewProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-export function SnakePreview({ itemId, category, rarity, size = 72 }: Props) {
-  // Resolve skin color data
-  const skinRef = category === "skin" ? itemId.slice(5) : null;
-  const skinData = skinRef ? SNAKE_SKINS.find(s => s.id === skinRef) : null;
+  // Resolve snake body skin
+  const skinLookup = category === "skin" ? itemId.slice(5) : (bodySkinId ?? null);
+  const skinData   = skinLookup ? SNAKE_SKINS.find(s => s.id === skinLookup) : null;
 
-  const bodyColor   = skinData?.color  ?? "#1c2838";
-  const accentColor = skinData?.accent ?? "#2a3d56";
-  const highColor   = skinData?.accent ?? "#3a5272";
+  const isRainbow = skinData?.id === "rainbow";
+  const isLotus   = skinData?.id === "lotus";
+  const baselineY = BASELINE[category];
+  const trailPal  = TRAIL_COLORS[itemId] ?? (["#ffffff", "#aaaaff", "#8888ff"] as [string, string, string]);
 
-  const rawSegs = category === "hat" ? HAT : STD;
-  const segs = rawSegs.map(s => ({ x: s.x * size, y: s.y * size, r: s.r * size }));
-  const head = segs[0];
-  const tail = segs[segs.length - 1];
-  const prevSeg = segs[segs.length - 2] ?? segs[0];
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  // Per-item unique gradient IDs (prevent DOM collisions)
-  const uid = itemId.replace(/[^a-z0-9]/g, "");
-  const gBody = `spb-${uid}`;
-  const gHead = `sph-${uid}`;
+    let rafId = 0;
+    let alive = true;
+    let visible = false;
 
-  // Hat overlay: center hat icon above the snake head
-  const hatSz  = Math.round(size * 0.44);
-  const hatLeft = head.x - hatSz / 2;
-  const hatTop  = head.y - head.r - hatSz * 0.80;
+    // Only draw when element is in viewport (perf: market grid can have 60+ canvases)
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0.01 });
+    io.observe(canvas);
 
-  // Charm rope: hangs from underside of neck segment
-  const neckSeg    = segs[1] ?? segs[0];
-  const ropeAnchorX = neckSeg.x;
-  const ropeAnchorY = neckSeg.y + neckSeg.r;
-  const ropeEndX    = neckSeg.x + size * 0.04;
-  const ropeEndY    = ropeAnchorY + size * 0.15;
-  const charmSz    = Math.round(size * 0.36);
-  const charmLeft  = ropeEndX - charmSz / 2;
-  const charmTop   = ropeEndY;
+    const tick = (now: number) => {
+      if (!alive) return;
+      if (visible) {
+        ctx.clearRect(0, 0, CW, CH);
+        drawFrame(ctx, now, skinData, isRainbow, isLotus, category, baselineY, trailPal);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
 
-  // Trail direction: extend past tail away from snake
-  const tdx   = tail.x - prevSeg.x;
-  const tdy   = tail.y - prevSeg.y;
-  const tLen  = Math.sqrt(tdx * tdx + tdy * tdy) || 1;
-  const tnx   = tdx / tLen;
-  const tny   = tdy / tLen;
-  const trailPalette = TRAIL_PALETTE[itemId] ?? ["#ffffff", "#aaaaff", "#8888ff"];
-  const trailDists = [size * 0.07, size * 0.13, size * 0.20, size * 0.28];
+    return () => {
+      alive = false;
+      io.disconnect();
+      cancelAnimationFrame(rafId);
+    };
+  }, [skinData?.id, isRainbow, isLotus, category, baselineY, trailPal.join()]);
+
+  // CSS scale: map internal canvas coords → CSS pixels
+  const sc = height / CH;
+
+  // ── Hat overlay: above head ───────────────────────────────────────────────
+  const hatSz   = Math.round(height * 0.40);
+  const hatLeft = `calc(${(HEAD_X / CW * 100).toFixed(1)}% - ${Math.round(hatSz / 2)}px)`;
+  const hatTop  = Math.round(baselineY * sc - HEAD_R * sc - hatSz);
+
+  // ── Charm overlay: below neck, connected by rope drawn on canvas ──────────
+  const neckX   = HEAD_X - (HEAD_X - TAIL_X) / (SEG_N - 1);
+  const ropeLen = 18;   // internal canvas units
+  const ropeEndY = baselineY + BODY_R + ropeLen;
+  const charmSz  = Math.round(height * 0.32);
+  const charmLeft = `calc(${((neckX + 6) / CW * 100).toFixed(1)}% - ${Math.round(charmSz / 2)}px)`;
+  const charmTop  = Math.round(ropeEndY * sc);
+
+  const showHat   = category === "hat"   && !itemId.endsWith(".none");
+  const showCharm = category === "charm" && !itemId.endsWith(".none");
 
   return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" style={{ display: "block" }}>
-        <defs>
-          {/* Body gradient: dark→accent along snake direction */}
-          <linearGradient id={gBody} x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%"   stopColor={bodyColor}   stopOpacity="0.82"/>
-            <stop offset="100%" stopColor={accentColor}  stopOpacity="0.96"/>
-          </linearGradient>
-          {/* Head: radial highlight */}
-          <radialGradient id={gHead} cx="38%" cy="34%" r="64%">
-            <stop offset="0%"   stopColor={highColor}/>
-            <stop offset="100%" stopColor={bodyColor}  stopOpacity="0.92"/>
-          </radialGradient>
-        </defs>
+    <div style={{ position: "relative", width: "100%", height, flexShrink: 0, overflow: "visible" }}>
+      <canvas
+        ref={canvasRef}
+        width={CW}
+        height={CH}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", pointerEvents: "none" }}
+      />
 
-        {/* ── Trail particles behind tail ──────────────────────────── */}
-        {category === "trail" && trailDists.map((d, i) => (
-          <circle
-            key={i}
-            cx={tail.x + tnx * d}
-            cy={tail.y + tny * d}
-            r={tail.r * Math.max(0.12, 0.88 - i * 0.22)}
-            fill={trailPalette[i % 3]}
-            opacity={0.78 - i * 0.17}
-          />
-        ))}
-
-        {/* ── Body segments drawn tail-first so head is on top ──────── */}
-        {[...segs].reverse().map((seg, ri) => {
-          const isHead = ri === segs.length - 1;
-          return (
-            <circle
-              key={ri}
-              cx={seg.x} cy={seg.y} r={seg.r}
-              fill={isHead ? `url(#${gHead})` : `url(#${gBody})`}
-            />
-          );
-        })}
-
-        {/* ── Head rim ────────────────────────────────────────────── */}
-        <circle
-          cx={head.x} cy={head.y} r={head.r}
-          fill="none"
-          stroke={accentColor}
-          strokeWidth="1.2"
-          opacity="0.55"
-        />
-
-        {/* ── Head inner highlight ─────────────────────────────────── */}
-        <circle
-          cx={head.x - head.r * 0.21}
-          cy={head.y - head.r * 0.27}
-          r={head.r * 0.30}
-          fill="white"
-          opacity="0.09"
-        />
-
-        {/* ── Eyes ─────────────────────────────────────────────────── */}
-        <circle
-          cx={head.x + head.r * 0.30}
-          cy={head.y - head.r * 0.24}
-          r={head.r * 0.24}
-          fill="white"
-        />
-        <circle
-          cx={head.x + head.r * 0.37}
-          cy={head.y - head.r * 0.21}
-          r={head.r * 0.13}
-          fill="#06060a"
-        />
-        {/* Eye shine */}
-        <circle
-          cx={head.x + head.r * 0.28}
-          cy={head.y - head.r * 0.28}
-          r={head.r * 0.07}
-          fill="white"
-          opacity="0.82"
-        />
-
-        {/* ── Charm rope ───────────────────────────────────────────── */}
-        {category === "charm" && (
-          <line
-            x1={ropeAnchorX} y1={ropeAnchorY}
-            x2={ropeEndX}    y2={ropeEndY}
-            stroke="#8a7060"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            opacity="0.88"
-          />
-        )}
-      </svg>
-
-      {/* ── Hat icon: rendered above snake head ─────────────────────── */}
-      {category === "hat" && (
-        <div
-          style={{
-            position: "absolute",
-            left: Math.round(hatLeft),
-            top:  Math.round(hatTop),
-            pointerEvents: "none",
-          }}
-        >
-          <ItemIcon itemId={itemId} rarity={rarity} size={hatSz}/>
+      {/* Hat SVG icon floats above head */}
+      {showHat && (
+        <div style={{ position: "absolute", left: hatLeft, top: Math.max(0, hatTop), pointerEvents: "none", zIndex: 3 }}>
+          <ItemIcon itemId={itemId} rarity={rarity} size={hatSz} />
         </div>
       )}
 
-      {/* ── Charm icon: dangles below rope endpoint ──────────────────── */}
-      {category === "charm" && (
-        <div
-          style={{
-            position: "absolute",
-            left: Math.round(charmLeft),
-            top:  Math.round(charmTop),
-            pointerEvents: "none",
-          }}
-        >
-          <ItemIcon itemId={itemId} rarity={rarity} size={charmSz}/>
+      {/* Charm SVG icon dangles from rope endpoint */}
+      {showCharm && (
+        <div style={{ position: "absolute", left: charmLeft, top: charmTop, pointerEvents: "none", zIndex: 3 }}>
+          <ItemIcon itemId={itemId} rarity={rarity} size={charmSz} />
         </div>
       )}
     </div>
   );
+}
+
+// ── Canvas drawing ────────────────────────────────────────────────────────────
+
+function buildPath(now: number, baselineY: number): PathNode[] {
+  const path: PathNode[] = [];
+  const taperStart = SEG_N - 4;
+  for (let i = 0; i < SEG_N; i++) {
+    const t = i / (SEG_N - 1);
+    const x = HEAD_X - t * (HEAD_X - TAIL_X);
+    const wave = Math.sin(i * 0.6 - now * 0.0024) * 5 + Math.sin(i * 0.3 + now * 0.001) * 2.5;
+    const y = baselineY + wave;
+    let r = BODY_R;
+    if (i >= taperStart) {
+      const tt = (i - taperStart) / Math.max(1, SEG_N - 1 - taperStart);
+      r = BODY_R * (1 - tt * tt * 0.76);
+    }
+    path.push({ x, y, r });
+  }
+  return path;
+}
+
+function lotusHue(i: number, t: number) {
+  const phase = (t + i * 0.18) % 1;
+  const w1 = Math.sin(phase * Math.PI * 2);
+  const w2 = Math.sin(phase * Math.PI * 2 * 1.618 + 0.5);
+  return {
+    hue:   ((290 + w1 * 45 + w2 * 18) % 360 + 360) % 360,
+    sat:   82 + w2 * 12,
+    light: 55 + w1 * 14 + w2 * 8,
+  };
+}
+
+function drawFrame(
+  ctx: CanvasRenderingContext2D,
+  now: number,
+  skin: SkinDef | null | undefined,
+  isRainbow: boolean,
+  isLotus: boolean,
+  category: MarketCategory,
+  baselineY: number,
+  trailPal: [string, string, string],
+): void {
+  const path   = buildPath(now, baselineY);
+  const N      = path.length;
+  const lt     = now * 0.00035;
+  const body   = skin?.color  ?? "#1c2838";
+  const shadow = skin?.shadow ?? "#0e1926";
+
+  // ── Trail orbs behind tail ──────────────────────────────────────
+  if (category === "trail") {
+    const tail = path[N - 1], prev = path[N - 2];
+    const dx = tail.x - prev.x, dy = tail.y - prev.y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nx = dx / len, ny = dy / len;
+    [0.9, 1.6, 2.4, 3.4].forEach((t, i) => {
+      ctx.beginPath();
+      ctx.arc(tail.x + nx * t * 20, tail.y + ny * t * 20, tail.r * Math.max(0.14, 0.86 - i * 0.22), 0, Math.PI * 2);
+      ctx.fillStyle = trailPal[i % 3];
+      ctx.globalAlpha = 0.78 - i * 0.17;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Body strokes ────────────────────────────────────────────────
+  for (let i = 0; i < N - 1; i++) {
+    const a = path[i], b = path[i + 1];
+    let color = body;
+    if (isRainbow) {
+      color = `hsl(${((i * 32) + (now * 0.0006) * 360) % 360}, 80%, 60%)`;
+    } else if (isLotus) {
+      const c = lotusHue(i, lt);
+      color = `hsl(${c.hue},${c.sat}%,${c.light}%)`;
+    }
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = a.r + b.r;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+  }
+
+  // ── Lotus shimmer overlay ───────────────────────────────────────
+  if (isLotus) {
+    const mid = lotusHue(Math.floor(N / 2), lt);
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < N; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.lineWidth = BODY_R * 0.9;
+    ctx.strokeStyle = `hsla(${(mid.hue + 70) % 360},90%,82%,0.32)`;
+    ctx.stroke();
+  }
+
+  // ── Specular streak ─────────────────────────────────────────────
+  const si = Math.floor(((now * 0.001) % 1) * N);
+  for (let k = 0; k < 3; k++) {
+    const idx = si + k;
+    if (idx < 1 || idx >= N) continue;
+    const nd = path[idx];
+    ctx.fillStyle = `rgba(255,255,255,${0.18 * (1 - k / 3)})`;
+    ctx.beginPath();
+    ctx.arc(nd.x - nd.r * 0.18, nd.y - nd.r * 0.32, nd.r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Charm rope (drawn on canvas so it scales with snake) ────────
+  if (category === "charm") {
+    const neck = path[1];
+    ctx.strokeStyle = "#8a7060";
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(neck.x, neck.y + BODY_R);
+    ctx.lineTo(neck.x + 6, neck.y + BODY_R + 18);
+    ctx.stroke();
+  }
+
+  // ── Head ────────────────────────────────────────────────────────
+  const hd = path[0];
+  const headColor = isRainbow
+    ? `hsl(${((now * 0.0006) * 360) % 360},80%,60%)`
+    : isLotus
+      ? (() => { const c = lotusHue(0, lt); return `hsl(${c.hue},${c.sat}%,${c.light}%)`; })()
+      : body;
+
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.arc(hd.x + HEAD_R * 0.5, hd.y, HEAD_R * 0.70, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(hd.x, hd.y, HEAD_R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = headColor;
+  ctx.beginPath();
+  ctx.arc(hd.x + HEAD_R * 0.5, hd.y, HEAD_R * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(hd.x, hd.y, HEAD_R * 0.92, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth line at snout tip
+  ctx.strokeStyle = "rgba(18,9,10,0.65)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(hd.x + HEAD_R, hd.y + HEAD_R * 0.32);
+  ctx.lineTo(hd.x + HEAD_R, hd.y - HEAD_R * 0.32);
+  ctx.stroke();
+
+  // ── Eyes ────────────────────────────────────────────────────────
+  const ef = HEAD_R * 0.40, es = HEAD_R * 0.34;
+  const scR = HEAD_R * 0.26, irR = HEAD_R * 0.17, puR = HEAD_R * 0.10;
+  for (const side of [-1, 1] as const) {
+    const ex = hd.x + ef, ey = hd.y + side * es;
+    ctx.fillStyle = "#fff4d9";
+    ctx.beginPath(); ctx.arc(ex, ey, scR, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(18,9,10,0.5)"; ctx.lineWidth = 0.6; ctx.stroke();
+    ctx.fillStyle = "#1d2030";
+    ctx.beginPath(); ctx.arc(ex + 0.8, ey, irR, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(ex + 1.5, ey, puR, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(ex + 1.0, ey - 0.8, puR * 0.5, 0, Math.PI * 2); ctx.fill();
+  }
 }

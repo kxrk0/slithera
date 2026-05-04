@@ -4,7 +4,7 @@ import { formatCoins } from "../../lib/coins";
 import { useCoins, useInventoryItems, useStats, useXp } from "../../lib/useEconomy";
 import { MARKET_ITEMS } from "../../lib/marketCatalog";
 import { loadMatches, type MatchRecord } from "../../lib/matchHistory";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type ProfileModalProps = { open: boolean; onClose: () => void };
 

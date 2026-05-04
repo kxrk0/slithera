@@ -4,7 +4,7 @@ import { addCoins } from "../../lib/coins";
 import { claimDaily, loadDaily, formatCountdown, secondsUntilMidnight } from "../../lib/daily";
 import { getQuestProgressFor, loadQuestProgress, WEEKLY_QUESTS } from "../../lib/quests";
 import { addXp } from "../../lib/xp";
-import { WardrobeModal } from "./WardrobeModal";
+import { WardrobeShell as WardrobeModal } from "./WardrobeShell";
 
 type QuestsModalProps = { open: boolean; onClose: () => void };
 

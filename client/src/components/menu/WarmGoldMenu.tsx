@@ -5,8 +5,7 @@ import { loadStats } from "../../lib/stats";
 import { AchievementsModal } from "./AchievementsModal";
 import { ArenaHallPanel } from "./ArenaHallPanel";
 import { CenterPanel } from "./CenterPanel";
-import { CharmPicker } from "./CharmPicker";
-import { HatPicker } from "./HatPicker";
+import { WardrobeModal, type WardrobeTab } from "./WardrobeModal";
 import { LifetimePanel } from "./LifetimePanel";
 import { LoadoutPanel } from "./LoadoutPanel";
 import { StreakBanner } from "./StreakBanner";
@@ -14,7 +13,6 @@ import { MarketModal } from "./MarketModal";
 import { ProfileModal } from "./ProfileModal";
 import { QuestsModal } from "./QuestsModal";
 import { SettingsModal } from "./SettingsModal";
-import { SkinPicker } from "./SkinPicker";
 import { SocialModal } from "./SocialModal";
 
 type WarmGoldMenuProps = {
@@ -32,13 +30,14 @@ type WarmGoldMenuProps = {
   onStart: () => void;
 };
 
-type ModalKind = "skin" | "hat" | "charm" | null;
-
 export function WarmGoldMenu({
   name, skinId, hatId, ropeAccessoryId, leaderboard, online, latencyMs,
   onNameChange, onSkinChange, onHatChange, onRopeAccessoryChange, onStart
 }: WarmGoldMenuProps) {
-  const [modal, setModal] = useState<ModalKind>(null);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [wardrobeTab, setWardrobeTab]   = useState<WardrobeTab>("skin");
+
+  const openWardrobe = (tab: WardrobeTab) => { setWardrobeTab(tab); setWardrobeOpen(true); };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const stats = useMemo(() => loadStats(), []);
   const daily = useMemo(() => loadDaily(), []);
@@ -67,9 +66,9 @@ export function WarmGoldMenu({
             skinId={skinId}
             hatId={hatId}
             ropeAccessoryId={ropeAccessoryId}
-            onOpenSkin={() => setModal("skin")}
-            onOpenHat={() => setModal("hat")}
-            onOpenCharm={() => setModal("charm")}
+            onOpenSkin={() => openWardrobe("skin")}
+            onOpenHat={() => openWardrobe("hat")}
+            onOpenCharm={() => openWardrobe("charm")}
           />
           <StreakBanner />
           <LifetimePanel stats={stats} />
@@ -97,27 +96,16 @@ export function WarmGoldMenu({
       </div>
       <div className="wg-bottom-edge">SLITHERA · NO. 002 · MMXXVI</div>
 
-      <SkinPicker
-        open={modal === "skin"}
-        onClose={() => setModal(null)}
-        skinId={skinId}
-        hatId={hatId}
-        onChange={onSkinChange}
-      />
-      <HatPicker
-        open={modal === "hat"}
-        onClose={() => setModal(null)}
-        skinId={skinId}
-        hatId={hatId}
-        onChange={onHatChange}
-      />
-      <CharmPicker
-        open={modal === "charm"}
-        onClose={() => setModal(null)}
+      <WardrobeModal
+        open={wardrobeOpen}
+        onClose={() => setWardrobeOpen(false)}
+        initialTab={wardrobeTab}
         skinId={skinId}
         hatId={hatId}
         ropeAccessoryId={ropeAccessoryId}
-        onChange={onRopeAccessoryChange}
+        onSkinChange={onSkinChange}
+        onHatChange={onHatChange}
+        onCharmChange={onRopeAccessoryChange}
       />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <MarketModal open={marketOpen} onClose={() => setMarketOpen(false)} />
