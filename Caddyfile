@@ -1,3 +1,15 @@
 slithera.duckdns.org {
-    reverse_proxy localhost:8080
+    # WebSocket connections → game directly (bypasses nginx)
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    handle @ws {
+        reverse_proxy localhost:3001
+    }
+
+    # Everything else → nginx (static files + SPA)
+    handle {
+        reverse_proxy localhost:8080
+    }
 }
