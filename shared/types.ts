@@ -32,6 +32,8 @@ export type PlayerState = {
   trailId?: string;
   isDev?: boolean;
   partyId?: string;
+  isMinion?: boolean;
+  ownerId?: string;
 };
 
 export type FoodPellet = Vec2 & {

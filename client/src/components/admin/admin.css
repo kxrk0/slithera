@@ -568,3 +568,81 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ─── Minion subscription panel ───────────── */
+.ad-minion-block {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(212,168,67,0.04);
+  border: 1px solid rgba(212,168,67,0.12);
+  border-radius: 4px;
+}
+.ad-minion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ad-minion-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ad-gold);
+  text-transform: uppercase;
+}
+.ad-minion-active {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ad-text);
+  font-weight: 600;
+}
+.ad-minion-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.ad-minion-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(212,168,67,0.18);
+  color: var(--ad-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  outline: none;
+}
+.ad-minion-input:focus {
+  border-color: rgba(212,168,67,0.5);
+}
+.ad-minion-btn {
+  background: rgba(212,168,67,0.15);
+  border: 1px solid rgba(212,168,67,0.4);
+  color: var(--ad-gold);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+.ad-minion-btn:hover {
+  background: rgba(212,168,67,0.25);
+}
+.ad-minion-btn--clear {
+  background: rgba(255,90,90,0.08);
+  border-color: rgba(255,90,90,0.3);
+  color: #ff8a8a;
+}
+.ad-minion-btn--clear:hover {
+  background: rgba(255,90,90,0.18);
+}
+.ad-minion-hint {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--ad-text-dim);
+  line-height: 1.5;
+}

@@ -8,11 +8,12 @@ import "../components/admin/admin.css";
 export function AdminDashboard() {
   const { user } = useAuth();
   const isAuthorized = user != null && DEV_UIDS.includes(user.id);
-  const { connected, snapshot, kick, banPlayer, broadcast, lastResult } = useSpectatorClient(isAuthorized ? user?.id : undefined);
+  const { connected, snapshot, kick, banPlayer, broadcast, setMinions, lastResult } = useSpectatorClient(isAuthorized ? user?.id : undefined);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [followMode, setFollowMode] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
+  const [minionInput, setMinionInput] = useState("0");
   const [toast, setToast] = useState<{ msg: string; key: number } | null>(null);
 
   const showToast = (msg: string) => setToast({ msg, key: Date.now() });
@@ -35,7 +36,13 @@ export function AdminDashboard() {
 
   const selectedPlayer = snapshot?.players.find(p => p.id === selectedId) ?? null;
   const humans = snapshot?.players.filter(p => !p.bot) ?? [];
-  const bots = snapshot?.players.filter(p => p.bot && p.alive) ?? [];
+  const bots = snapshot?.players.filter(p => p.bot && p.alive && !p.isMinion) ?? [];
+  const activeMinions = (selectedId && snapshot)
+    ? snapshot.players.filter(p => p.isMinion && p.ownerId === selectedId && p.alive).length
+    : 0;
+
+  // Sync minion input box when selecting a different player
+  useEffect(() => { setMinionInput("0"); }, [selectedId]);
 
   const handleKick = () => {
     if (!selectedId) return;
@@ -54,6 +61,12 @@ export function AdminDashboard() {
     if (!text) return;
     broadcast(text);
     setBroadcastText("");
+  };
+
+  const handleSetMinions = () => {
+    if (!selectedId) return;
+    const n = Math.max(0, Math.min(500, Math.floor(Number(minionInput) || 0)));
+    setMinions(selectedId, n);
   };
 
   if (!user) {
@@ -223,6 +236,32 @@ export function AdminDashboard() {
               <div className="ad-detail-uid">
                 <div className="ad-uid-label">Player ID</div>
                 <div className="ad-uid-val">{selectedPlayer.id}</div>
+              </div>
+
+              <div className="ad-minion-block">
+                <div className="ad-minion-head">
+                  <span className="ad-minion-title">Minion Subscription</span>
+                  <span className="ad-minion-active">{activeMinions} active</span>
+                </div>
+                <div className="ad-minion-row">
+                  <input
+                    className="ad-minion-input"
+                    type="number"
+                    min={0}
+                    max={500}
+                    value={minionInput}
+                    onChange={e => setMinionInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleSetMinions(); }}
+                    placeholder="0"
+                  />
+                  <button className="ad-minion-btn" type="button" onClick={handleSetMinions}>Set</button>
+                  <button
+                    className="ad-minion-btn ad-minion-btn--clear"
+                    type="button"
+                    onClick={() => { setMinionInput("0"); setMinions(selectedPlayer.id, 0); }}
+                  >Clear</button>
+                </div>
+                <div className="ad-minion-hint">Bots that walk to this player and feed themselves on contact (+30 score each). Refills continuously.</div>
               </div>
 
               <div className="ad-detail-actions">

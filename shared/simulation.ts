@@ -33,7 +33,10 @@ import {
   TURN_RATE,
   VIEW_RADIUS,
   WORLD_HEIGHT,
-  WORLD_WIDTH
+  WORLD_WIDTH,
+  MINION_SEGMENTS,
+  MINION_SCORE_REWARD,
+  MINION_SPAWN_DISTANCE_MIN
 } from "./constants.js";
 import { canUseCharmFor, canUseSkinFor, isDevUid } from "./exclusive.js";
 import { sanitizePlayerName } from "./names.js";
@@ -146,6 +149,47 @@ export function removePlayer(world: World, id: string): void {
   world.players.delete(id);
   world.botInputs.delete(id);
   world.botProfiles.delete(id);
+}
+
+export function createMinion(world: World, ownerId: string): PlayerState | undefined {
+  const owner = world.players.get(ownerId);
+  if (!owner || !owner.alive) return undefined;
+  const ownerHead = owner.segments[0];
+  const id = nextId("minion");
+
+  // Pick a spawn point that's at least MINION_SPAWN_DISTANCE_MIN away from the owner.
+  let spawn = safeSpawnPoint(world);
+  for (let attempts = 0; attempts < 8; attempts += 1) {
+    const dx = spawn.x - ownerHead.x;
+    const dy = spawn.y - ownerHead.y;
+    if (dx * dx + dy * dy >= MINION_SPAWN_DISTANCE_MIN * MINION_SPAWN_DISTANCE_MIN) break;
+    spawn = randomPoint(world.rng, 80);
+  }
+
+  const heading = Math.atan2(ownerHead.y - spawn.y, ownerHead.x - spawn.x);
+  const player: PlayerState = {
+    id,
+    name: `★ ${owner.name}`,
+    skinId: owner.skinId,
+    color: owner.color,
+    accent: owner.accent,
+    score: 0,
+    boost: BOOST_MAX,
+    alive: true,
+    bot: true,
+    boosting: false,
+    speed: BASE_SPEED,
+    heading,
+    targetHeading: heading,
+    segments: makeSegments(spawn, heading, MINION_SEGMENTS),
+    segmentProgress: 0,
+    kills: 0,
+    isMinion: true,
+    ownerId
+  };
+  world.players.set(id, player);
+  world.events.push({ type: "joined", id, name: player.name });
+  return player;
 }
 
 export function applyInput(world: World, id: string, input: ClientInput): void {
@@ -470,7 +514,34 @@ function updateFood(world: World, dt: number): void {
 function resolveCollisions(world: World, now: number): void {
   const wallVictims: PlayerState[] = [];
   const bodyVictims: { player: PlayerState; killer: PlayerState }[] = [];
+  const minionConsumes: { minion: PlayerState; owner: PlayerState }[] = [];
   const COLLISION_LENIENCY = 1.06;
+
+  // Minion → owner pickup: if a live minion's head touches its owner's body,
+  // owner absorbs MINION_SCORE_REWARD and minion despawns silently (no death,
+  // no food drop). Checked BEFORE the regular kill loop so the minion never
+  // becomes a "victim" of its own owner.
+  for (const minion of world.players.values()) {
+    if (!minion.alive || !minion.isMinion || !minion.ownerId) continue;
+    const owner = world.players.get(minion.ownerId);
+    if (!owner?.alive) continue;
+    const minionHead = minion.segments[0];
+    const ownerGrowth = snakeSizeScale(owner);
+    const minionGrowth = snakeSizeScale(minion);
+    const r = (HEAD_RADIUS * minionGrowth + BODY_RADIUS * ownerGrowth) * 1.2;
+    const rSq = r * r;
+    for (let i = 0; i < owner.segments.length; i += 1) {
+      if (distanceSq(minionHead, owner.segments[i]) < rSq) {
+        minionConsumes.push({ minion, owner });
+        break;
+      }
+    }
+  }
+  for (const { minion, owner } of minionConsumes) {
+    owner.score += MINION_SCORE_REWARD;
+    world.events.push({ type: "food", id: minion.id, playerId: owner.id, value: MINION_SCORE_REWARD });
+    removePlayer(world, minion.id);
+  }
 
   for (const player of world.players.values()) {
     if (!player.alive) continue;
@@ -485,9 +556,11 @@ function resolveCollisions(world: World, now: number): void {
 
     // Self-collision is disabled — passing through your own body is allowed.
     // Party teammates also pass through each other.
+    // Minions also pass through their own owner without dying (handled above).
     for (const rival of world.players.values()) {
       if (!rival.alive || rival.id === player.id) continue;
       if (player.partyId && rival.partyId === player.partyId) continue;
+      if (player.isMinion && player.ownerId === rival.id) continue;
       const rivalGrowth = snakeSizeScale(rival);
       const collisionRadius = (HEAD_RADIUS * playerGrowth + BODY_RADIUS * rivalGrowth) * COLLISION_LENIENCY;
       const collisionRadiusSq = collisionRadius * collisionRadius;
@@ -578,14 +651,15 @@ function pickBotProfile(world: World): BotProfile {
 
 function ensureBots(world: World): void {
   // Scale bot population: enough to keep humans busy, capped at MAX_ACTIVE_SNAKES.
+  // Minions are excluded from regular bot accounting — they have their own quota.
   const players = [...world.players.values()];
-  const humans = players.filter((p) => !p.bot).length;
+  const regulars = players.filter((p) => !p.isMinion);
+  const humans = regulars.filter((p) => !p.bot).length;
   const targetTotal = Math.min(
     MAX_ACTIVE_SNAKES,
     Math.max(MIN_ACTIVE_SNAKES, humans + Math.max(humans * TARGET_BOTS_PER_HUMAN, MIN_ACTIVE_SNAKES))
   );
-  // If a human leaves, extra bots stay until they die (they don't get auto-removed mid-life).
-  const needed = Math.max(0, targetTotal - players.length);
+  const needed = Math.max(0, targetTotal - regulars.length);
   for (let i = 0; i < needed; i += 1) {
     const name = BOT_NAMES[(world.players.size + i) % BOT_NAMES.length];
     const id = nextId("bot");
@@ -593,11 +667,9 @@ function ensureBots(world: World): void {
     world.botProfiles.set(id, pickBotProfile(world));
   }
 
-  // If we're way over the target (e.g. lots of humans left), retire extra dead bots
-  // so we don't keep respawning them forever.
-  if (players.length > targetTotal) {
-    const deadBots = players.filter((p) => p.bot && !p.alive);
-    const removeCount = Math.min(deadBots.length, players.length - targetTotal);
+  if (regulars.length > targetTotal) {
+    const deadBots = regulars.filter((p) => p.bot && !p.alive);
+    const removeCount = Math.min(deadBots.length, regulars.length - targetTotal);
     for (let i = 0; i < removeCount; i += 1) {
       removePlayer(world, deadBots[i].id);
     }
@@ -626,9 +698,31 @@ function nearestFood(world: World, player: PlayerState): { pellet: Vec2; distanc
 }
 
 function updateBotInput(world: World, player: PlayerState): ClientInput {
-  const profile = world.botProfiles.get(player.id) ?? "grazer";
   const head = player.segments[0];
   const jitter = (world.rng() - 0.5) * 0.32;
+
+  // Minions: head straight for the owner. If owner died/disconnected, drift
+  // gently with a touch of wall avoidance so they don't pile into a corner.
+  if (player.isMinion) {
+    const owner = player.ownerId ? world.players.get(player.ownerId) : undefined;
+    if (owner?.alive) {
+      const ownerHead = owner.segments[0];
+      const heading = Math.atan2(ownerHead.y - head.y, ownerHead.x - head.x) + jitter * 0.5;
+      return { heading, boosting: false };
+    }
+    // Owner gone: minion idles, but still steers away from walls so it lives.
+    let nudge = { x: 0, y: 0 };
+    if (head.x < 220) nudge.x = 1;
+    else if (head.x > WORLD_WIDTH - 220) nudge.x = -1;
+    if (head.y < 220) nudge.y = 1;
+    else if (head.y > WORLD_HEIGHT - 220) nudge.y = -1;
+    if (nudge.x !== 0 || nudge.y !== 0) {
+      return { heading: Math.atan2(nudge.y, nudge.x), boosting: false };
+    }
+    return { heading: player.heading + jitter * 0.4, boosting: false };
+  }
+
+  const profile = world.botProfiles.get(player.id) ?? "grazer";
 
   // Wall avoidance: every bot tries not to die at the wall
   const wallMargin = 220;

@@ -9,6 +9,7 @@ type SpectatorHook = {
   ban: (opts: { uid?: string; ip?: string }) => void;
   banPlayer: (targetId: string) => void;
   broadcast: (text: string) => void;
+  setMinions: (targetId: string, count: number) => void;
   lastResult: AdminResult | null;
 };
 
@@ -62,6 +63,7 @@ export function useSpectatorClient(uid: string | undefined): SpectatorHook {
   const ban = useCallback((opts: { uid?: string; ip?: string }) => sendMsg({ type: "admin_ban", ...opts }), [sendMsg]);
   const banPlayer = useCallback((targetId: string) => sendMsg({ type: "admin_ban_player", targetId }), [sendMsg]);
   const broadcast = useCallback((text: string) => sendMsg({ type: "admin_broadcast", text }), [sendMsg]);
+  const setMinions = useCallback((targetId: string, count: number) => sendMsg({ type: "admin_set_minions", targetId, count }), [sendMsg]);
 
-  return { connected, snapshot, kick, ban, banPlayer, broadcast, lastResult };
+  return { connected, snapshot, kick, ban, banPlayer, broadcast, setMinions, lastResult };
 }

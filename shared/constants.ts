@@ -18,6 +18,11 @@ export const SEGMENT_SPACING = 18;
 // Server only sends entities within this radius around the player's head (snapshot bandwidth).
 // Picked to comfortably cover the smallest zoom (~0.55× → diagonal half ≈ 2000px) plus padding.
 export const VIEW_RADIUS = 2800;
+// Minion (admin-spawned bot that walks to its owner)
+export const MINION_SEGMENTS = 14;        // small starter snake
+export const MINION_SCORE_REWARD = 30;    // score transferred to owner on consume
+export const MINION_MAX_PER_OWNER = 500;  // hard ceiling per assignment
+export const MINION_SPAWN_DISTANCE_MIN = 600;  // spawn at least this far from owner
 export const TAIL_GROW_SEGMENTS_PER_SECOND = 5.5;
 export const TAIL_SHRINK_SEGMENTS_PER_SECOND = 14;
 export const HEAD_RADIUS = 16;

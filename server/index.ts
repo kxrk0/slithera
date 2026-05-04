@@ -6,7 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, type WebSocket } from "ws";
 import { SNAPSHOT_RATE, TICK_RATE } from "../shared/constants.js";
-import { applyInput, createPlayer, createWorld, makeSnapshot, removePlayer, respawn, stepWorld } from "../shared/simulation.js";
+import { applyInput, createMinion, createPlayer, createWorld, makeSnapshot, removePlayer, respawn, stepWorld } from "../shared/simulation.js";
+import { MINION_MAX_PER_OWNER } from "../shared/constants.js";
 import type { ClientMessage, ServerMessage } from "../shared/types.js";
 import { isDevUid } from "../shared/exclusive.js";
 
@@ -64,6 +65,9 @@ const playerToParty = new Map<string, string>();
 // runtime ban lists (cleared on restart; persist via external tooling if needed)
 const bannedUids = new Set<string>();
 const bannedIps = new Set<string>();
+// admin → minion subscriptions: ownerPlayerId → desired count (refilled continuously)
+const minionAssignments = new Map<string, number>();
+const MINION_SPAWN_BUDGET_PER_TICK = 4; // cap spawns per refill tick to avoid stalls
 let shuttingDown = false;
 
 function generatePartyCode(): string {
@@ -382,6 +386,25 @@ wssSpectate.on("connection", (socket) => {
       }
       log("admin.ban", { uid: uid || null, ip: ip || null });
       socket.send(JSON.stringify({ type: "admin_result", ok: true, action: "ban" }));
+    } else if (msg.type === "admin_set_minions") {
+      const targetId = String(msg.targetId ?? "").trim();
+      const rawCount = Number(msg.count ?? 0);
+      const count = Math.max(0, Math.min(MINION_MAX_PER_OWNER, Math.floor(rawCount)));
+      const owner = world.players.get(targetId);
+      if (!owner) {
+        socket.send(JSON.stringify({ type: "admin_result", ok: false, action: "set_minions", error: "Player not found" }));
+        return;
+      }
+      if (count === 0) {
+        minionAssignments.delete(targetId);
+        for (const p of [...world.players.values()]) {
+          if (p.isMinion && p.ownerId === targetId) removePlayer(world, p.id);
+        }
+      } else {
+        minionAssignments.set(targetId, count);
+      }
+      log("admin.set_minions", { targetId, count });
+      socket.send(JSON.stringify({ type: "admin_result", ok: true, action: "set_minions", targetId, count }));
     } else if (msg.type === "admin_ban_player") {
       // Ban by playerId — server looks up the UID internally
       const targetId = String(msg.targetId ?? "").trim();
@@ -608,6 +631,13 @@ wss.on("connection", (socket, request) => {
     const playerId = sockets.get(socket);
     if (playerId) {
       leaveParty(playerId);
+      // Drop any minion subscription this player had + remove their live minions.
+      if (minionAssignments.has(playerId)) {
+        minionAssignments.delete(playerId);
+        for (const p of [...world.players.values()]) {
+          if (p.isMinion && p.ownerId === playerId) removePlayer(world, p.id);
+        }
+      }
       removePlayer(world, playerId);
       lastEmoteAt.delete(playerId);
       lastChatAt.delete(playerId);
@@ -654,6 +684,31 @@ const snapshotTimer = setInterval(() => {
   }
 }, 1000 / SNAPSHOT_RATE);
 
+// Minion refill loop: every second, top up each subscription up to its target.
+// Spawns capped per tick so a 200-minion subscription fills in over ~50s
+// without blocking the snapshot loop.
+const minionTimer = setInterval(() => {
+  if (minionAssignments.size === 0) return;
+  for (const [ownerId, target] of [...minionAssignments]) {
+    const owner = world.players.get(ownerId);
+    if (!owner) {
+      minionAssignments.delete(ownerId);
+      continue;
+    }
+    let alive = 0;
+    for (const p of world.players.values()) {
+      if (p.isMinion && p.ownerId === ownerId && p.alive) alive += 1;
+    }
+    let need = Math.min(target - alive, MINION_SPAWN_BUDGET_PER_TICK);
+    if (need <= 0) continue;
+    if (!owner.alive) continue; // pause refill while owner dead; resumes on respawn
+    while (need > 0) {
+      if (!createMinion(world, ownerId)) break;
+      need -= 1;
+    }
+  }
+}, 1000);
+
 // Periodic metric snapshot — useful for fly logs/grafana
 const metricsTimer = setInterval(() => {
   const players = [...world.players.values()];
@@ -692,6 +747,7 @@ function shutdown(): void {
   clearInterval(tickTimer);
   clearInterval(snapshotTimer);
   clearInterval(metricsTimer);
+  clearInterval(minionTimer);
 
   for (const socket of wss.clients) {
     socket.close(1001, "Server shutting down");
