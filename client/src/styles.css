@@ -4224,6 +4224,161 @@ button {
   color: var(--wg-gold);
 }
 
+/* ============ Update Overlay ============ */
+.wg-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 5, 2, 0.72);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  animation: wg-update-fade 400ms var(--wg-ease-soft);
+}
+@keyframes wg-update-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.wg-update-card {
+  width: min(360px, calc(100vw - 40px));
+  padding: 40px 36px 36px;
+  background: linear-gradient(160deg, rgba(22, 15, 8, 0.98) 0%, rgba(16, 11, 5, 0.98) 100%);
+  border: 1px solid rgba(240, 181, 64, 0.22);
+  border-radius: 24px;
+  text-align: center;
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(240, 181, 64, 0.06) inset;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: wg-update-card-in 400ms var(--wg-ease-snap);
+}
+@keyframes wg-update-card-in {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Spinner */
+.wg-update-spinner {
+  width: 56px;
+  height: 56px;
+  position: relative;
+  margin-bottom: 6px;
+}
+.wg-update-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--wg-gold);
+  border-right-color: rgba(240, 181, 64, 0.3);
+  animation: wg-spin 1.1s linear infinite;
+}
+.wg-update-ring.delay-1 {
+  inset: 8px;
+  border-top-color: transparent;
+  border-bottom-color: var(--wg-amber);
+  animation-duration: 0.75s;
+  animation-direction: reverse;
+}
+@keyframes wg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Done checkmark */
+.wg-update-check {
+  width: 56px;
+  height: 56px;
+  color: var(--wg-gold);
+  margin-bottom: 6px;
+}
+.wg-check-path {
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: wg-check-draw 500ms 100ms var(--wg-ease-soft) forwards;
+}
+@keyframes wg-check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Text */
+.wg-update-eyebrow {
+  font-family: var(--wg-mono);
+  font-size: 9px;
+  letter-spacing: 0.45em;
+  color: var(--wg-gold);
+  font-weight: 700;
+  opacity: 0.7;
+  margin-top: -4px;
+}
+
+.wg-update-title {
+  font-family: var(--wg-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--wg-cream);
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+  line-height: 1.1;
+}
+
+.wg-update-desc {
+  font-size: 13px;
+  color: var(--wg-cream-mute);
+  line-height: 1.55;
+  margin: 2px 0 6px;
+  max-width: 280px;
+}
+
+/* Animated dots (updating phase) */
+.wg-update-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 4px;
+}
+.wg-update-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wg-gold);
+  opacity: 0.3;
+  animation: wg-dot-pulse 1.4s ease-in-out infinite;
+}
+.wg-update-dots span:nth-child(2) { animation-delay: 0.22s; }
+.wg-update-dots span:nth-child(3) { animation-delay: 0.44s; }
+@keyframes wg-dot-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.85); }
+  50%       { opacity: 0.9; transform: scale(1.15); }
+}
+
+/* Refresh button */
+.wg-update-refresh-btn {
+  margin-top: 8px;
+  padding: 11px 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 181, 64, 0.5);
+  background: linear-gradient(135deg, rgba(240, 181, 64, 0.16), rgba(217, 122, 60, 0.12));
+  color: var(--wg-cream);
+  font-family: var(--wg-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms, transform 160ms;
+  box-shadow: 0 4px 18px rgba(240, 181, 64, 0.12);
+}
+.wg-update-refresh-btn:hover {
+  background: linear-gradient(135deg, rgba(240, 181, 64, 0.28), rgba(217, 122, 60, 0.22));
+  border-color: var(--wg-gold);
+  transform: translateY(-1px);
+}
+
 /* === Achievement toasts === */
 .wg-achievement-toasts {
   position: fixed;

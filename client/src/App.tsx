@@ -4,6 +4,7 @@ import { EmotePicker } from "./components/EmotePicker";
 import { GameHud } from "./components/GameHud";
 import { TouchControls } from "./components/TouchControls";
 import { WarmGoldMenu } from "./components/menu/WarmGoldMenu";
+import { UpdateOverlay } from "./components/UpdateOverlay";
 import { PixiGame } from "./game/PixiGame";
 import { useGameClient } from "./game/useGameClient";
 import { evaluateAchievements } from "./lib/achievements";
@@ -159,6 +160,7 @@ export default function App() {
   return (
     <main className="game-shell">
       <AchievementToasts />
+      <UpdateOverlay status={status} />
       <PixiGame
         snapshot={renderedSnapshot}
         playerId={renderedPlayerId}
