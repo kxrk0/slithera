@@ -63,7 +63,7 @@ export const CRATES: CrateDef[] = [
   },
 ];
 
-type PoolItem = { marketId: string; refId: string; rarity: Rarity; category: "skin" | "hat" | "charm" | "trail"; name: string };
+export type PoolItem = { marketId: string; refId: string; rarity: Rarity; category: "skin" | "hat" | "charm" | "trail"; name: string };
 
 function buildPool(): PoolItem[] {
   const pool: PoolItem[] = [];
@@ -131,4 +131,11 @@ export function openCrate(crateId: CrateId, ownedIds: string[]): { ok: false; re
   if (isNew) grantItem(item.marketId);
 
   return { ok: true, result: { item, isNew } };
+}
+
+export function getReelFillers(count: number, winnerIdx: number, winner: PoolItem): PoolItem[] {
+  return Array.from({ length: count }, (_, i) => {
+    if (i === winnerIdx) return winner;
+    return POOL[Math.floor(Math.random() * POOL.length)];
+  });
 }
