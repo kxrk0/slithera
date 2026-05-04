@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Crown, Expand, Pause, Play, RotateCcw, Settings } from "lucide-react";
-import { BOOST_MAX, HAT_OPTIONS, ROPE_ACCESSORIES, SNAKE_SKINS, WORLD_HEIGHT, WORLD_WIDTH } from "../../../shared/constants";
+import { HAT_OPTIONS, ROPE_ACCESSORIES, SNAKE_SKINS, WORLD_HEIGHT, WORLD_WIDTH } from "../../../shared/constants";
 import type { ChatMessage, ChatScope, PlayerState, ServerSnapshot } from "../../../shared/types";
 import type { PartyInvite, PartyState, RecentEvent } from "../game/useGameClient";
 import { useLocale } from "../lib/i18n";
@@ -88,8 +88,6 @@ export function GameHud({
   const leaderboard = snapshot?.leaderboard ?? [];
   const score = player?.score ?? 0;
   const length = player?.segments.length ?? 0;
-  const boostPct = player ? Math.max(0, Math.min(100, (player.boost / BOOST_MAX) * 100)) : 0;
-  const isBoosting = Boolean(player?.boosting);
   const killerName = player && !player.alive ? player.lastKillerName ?? null : null;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextTarget | null>(null);
@@ -304,16 +302,6 @@ export function GameHud({
           })}
         </div>
       </section>
-
-      {/* Boost meter (visible while alive) */}
-      {player && player.alive ? (
-        <div
-          className={`wg-boost-meter${boostPct < 1 ? " empty" : ""}${isBoosting ? " boosting" : ""}`}
-          aria-label="Boost meter"
-        >
-          <i style={{ width: `${boostPct}%` }} />
-        </div>
-      ) : null}
 
       {/* Death overlay */}
       {player && !player.alive ? (

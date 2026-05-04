@@ -1,12 +1,10 @@
 import {
   BASE_SPEED,
   BODY_RADIUS,
-  BOOST_DRAIN_PER_SECOND,
   BOOST_MAX,
-  BOOST_MIN_TO_START,
-  BOOST_REFILL_PER_SECOND,
   BOOST_SHRINK_SCORE_PER_SECOND,
   BOOST_SPEED,
+  MIN_BOOST_LENGTH,
   BOT_NAMES,
   FOOD_ATTRACT_RADIUS,
   FOOD_ATTRACT_SPEED,
@@ -242,18 +240,19 @@ export function stepWorld(world: World, dt: number, now = Date.now()): GameEvent
       player.targetHeading = input.heading;
     }
 
-    // Boost: requires meter > 0 to start, drains while held, refills when released.
+    // Boost: always available as long as the snake is longer than
+    // MIN_BOOST_LENGTH. Cost is paid in score (≈ 0.6 segments/sec at the
+    // default rate). No meter, no refill.
     const wantsBoost = Boolean(input?.boosting);
-    const canStartBoost = wantsBoost && (player.boosting ? player.boost > 0 : player.boost >= BOOST_MIN_TO_START);
-    const boosting = canStartBoost;
+    const longEnough = player.segments.length > MIN_BOOST_LENGTH;
+    const boosting = wantsBoost && longEnough;
     player.boosting = boosting;
     player.speed = boosting ? BOOST_SPEED : BASE_SPEED;
     if (boosting) {
-      player.boost = Math.max(0, player.boost - BOOST_DRAIN_PER_SECOND * stepDt);
       player.score = Math.max(MIN_SCORE, player.score - BOOST_SHRINK_SCORE_PER_SECOND * stepDt);
-    } else {
-      player.boost = Math.min(BOOST_MAX, player.boost + BOOST_REFILL_PER_SECOND * stepDt);
     }
+    // Keep player.boost field full so any stale client UI reads as 100%.
+    player.boost = BOOST_MAX;
 
     player.heading = rotateToward(player.heading, player.targetHeading, effectiveTurnRate(player) * stepDt);
     const direction = headingToVector(player.heading);
@@ -349,7 +348,10 @@ export function makeLeaderboard(world: World, localId?: string): LeaderboardEntr
 }
 
 export function desiredSegmentCount(score: number): number {
-  return Math.min(MAX_SEGMENTS, Math.max(START_LENGTH, START_LENGTH + Math.floor(Math.max(0, score - MIN_SCORE) / SCORE_PER_SEGMENT)));
+  // No upper cap — snake grows indefinitely with score. The handling
+  // and visual-scale curves (effectiveTurnRate, snakeSizeScale) plateau
+  // at MAX_SEGMENTS so behavior past that point stays stable.
+  return Math.max(START_LENGTH, START_LENGTH + Math.floor(Math.max(0, score - MIN_SCORE) / SCORE_PER_SEGMENT));
 }
 
 export function makeSegments(head: Vec2, heading: number, count: number): Vec2[] {
@@ -782,8 +784,9 @@ function updateBotInput(world: World, player: PlayerState): ClientInput {
   }
 
   const heading = target ? Math.atan2(target.y - head.y, target.x - head.x) + jitter : player.heading + jitter;
-  // Idle boost only for hunters / cowards under threat
-  return { heading, boosting: shouldBoost && player.boost > 20 };
+  // Idle boost only for hunters / cowards under threat (and only if they have
+  // length to burn — server enforces MIN_BOOST_LENGTH separately).
+  return { heading, boosting: shouldBoost && player.segments.length > MIN_BOOST_LENGTH + 4 };
 }
 
 function snakeSizeScale(player: PlayerState): number {

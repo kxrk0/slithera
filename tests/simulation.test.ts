@@ -72,7 +72,7 @@ describe("authoritative simulation", () => {
     expect(player.segments.length).toBeLessThanOrEqual(initialLength + TAIL_GROW_SEGMENTS_PER_SECOND + 1);
   });
 
-  it("caps snake length and publishes food-based score", () => {
+  it("publishes food-based score and grows length without an upper cap", () => {
     const world = createWorld(11);
     const player = createPlayer(world, "score_test", "Pilot");
     player.score = 17;
@@ -80,7 +80,9 @@ describe("authoritative simulation", () => {
     const snapshot = makeSnapshot(world, player.id);
     const publishedPlayer = snapshot.players.find((item) => item.id === player.id);
 
-    expect(desiredSegmentCount(10_000_000)).toBe(MAX_SEGMENTS);
+    // Length grows linearly with score — no cap. MAX_SEGMENTS is only a soft
+    // reference for the handling/visual-scale plateau curves.
+    expect(desiredSegmentCount(10_000_000)).toBeGreaterThan(MAX_SEGMENTS * 100);
     expect(publishedPlayer?.score).toBe(17);
     expect(Number.isInteger(publishedPlayer?.score)).toBe(true);
   });

@@ -32,11 +32,14 @@ export const FOOD_SCORE = 1;
 export const FOOD_DRIFT_SPEED = 10;
 export const FOOD_ATTRACT_RADIUS = 90;
 export const FOOD_ATTRACT_SPEED = 80;
-export const BOOST_SHRINK_SCORE_PER_SECOND = 3;
+// Slither.io-style boost: no meter, no refill — boost is always available
+// as long as the snake has more than MIN_BOOST_LENGTH segments. The cost
+// is paid in score (which translates to length via SCORE_PER_SEGMENT).
+export const BOOST_SHRINK_SCORE_PER_SECOND = 5;
+export const MIN_BOOST_LENGTH = 12;
+// Legacy meter constants — kept so existing PlayerState.boost field stays
+// numeric (always full) without breaking older clients during rollout.
 export const BOOST_MAX = 100;
-export const BOOST_DRAIN_PER_SECOND = 30;
-export const BOOST_REFILL_PER_SECOND = 18;
-export const BOOST_MIN_TO_START = 6;
 export const SELF_COLLISION_SKIP_SEGMENTS = 8;
 export const RESPAWN_DELAY_MS = 1400;
 
