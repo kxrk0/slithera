@@ -15,6 +15,9 @@ export const BASE_SPEED = 168;
 export const BOOST_SPEED = 300;
 export const TURN_RATE = 2.35;
 export const SEGMENT_SPACING = 18;
+// Server only sends entities within this radius around the player's head (snapshot bandwidth).
+// Picked to comfortably cover the smallest zoom (~0.55× → diagonal half ≈ 2000px) plus padding.
+export const VIEW_RADIUS = 2800;
 export const TAIL_GROW_SEGMENTS_PER_SECOND = 5.5;
 export const TAIL_SHRINK_SEGMENTS_PER_SECOND = 14;
 export const HEAD_RADIUS = 16;
