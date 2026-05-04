@@ -1,7 +1,7 @@
 export const WORLD_WIDTH = 5200;
 export const WORLD_HEIGHT = 3400;
 export const TICK_RATE = 60;
-export const SNAPSHOT_RATE = 45;
+export const SNAPSHOT_RATE = 30;
 export const MIN_ACTIVE_SNAKES = 6;
 export const MAX_ACTIVE_SNAKES = 14;
 export const TARGET_BOTS_PER_HUMAN = 4;

@@ -264,6 +264,11 @@ export function makeSnapshot(world: World, localId?: string): ServerSnapshot {
     }
   }
 
+  // Round positions to whole pixels — saves ~30% JSON size with no visible
+  // change (client interpolation smooths sub-pixel transitions anyway).
+  const roundXY = <T extends { x: number; y: number }>(v: T): T =>
+    ({ ...v, x: Math.round(v.x), y: Math.round(v.y) });
+
   return {
     type: "snapshot",
     tick: world.tick,
@@ -271,9 +276,14 @@ export function makeSnapshot(world: World, localId?: string): ServerSnapshot {
     players: visiblePlayers.map((player) => ({
       ...player,
       score: Math.floor(player.score),
-      segments: player.segments.map((segment) => ({ ...segment }))
+      heading: Math.round(player.heading * 1000) / 1000,
+      targetHeading: Math.round(player.targetHeading * 1000) / 1000,
+      boost: Math.round(player.boost * 100) / 100,
+      speed: Math.round(player.speed),
+      segmentProgress: Math.round(player.segmentProgress * 100) / 100,
+      segments: player.segments.map(roundXY)
     })),
-    food: visibleFood.map((pellet) => ({ ...pellet })),
+    food: visibleFood.map(roundXY),
     leaderboard: makeLeaderboard(world, localId)
   };
 }

@@ -303,8 +303,20 @@ const server = createServer(async (request, response) => {
   }
 });
 
-const wss = new WebSocketServer({ noServer: true });
-const wssSpectate = new WebSocketServer({ noServer: true });
+// permessage-deflate: ~50-60% bandwidth reduction on JSON snapshots, ~5% server CPU.
+// concurrencyLimit caps parallel zlib streams; threshold skips small frames.
+const wsCompression = {
+  perMessageDeflate: {
+    zlibDeflateOptions: { level: 3, memLevel: 7 },
+    zlibInflateOptions: { chunkSize: 10 * 1024 },
+    clientNoContextTakeover: true,
+    serverNoContextTakeover: true,
+    concurrencyLimit: 10,
+    threshold: 512
+  }
+} as const;
+const wss = new WebSocketServer({ noServer: true, ...wsCompression });
+const wssSpectate = new WebSocketServer({ noServer: true, ...wsCompression });
 
 // Route upgrade requests manually — avoids ws multi-server path-routing bug
 server.on("upgrade", (request, socket, head) => {
