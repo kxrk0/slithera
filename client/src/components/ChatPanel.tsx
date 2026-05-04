@@ -62,8 +62,8 @@ export function ChatPanel({ messages, inParty, onSend }: ChatPanelProps) {
               <span className="wg-chat-msg-meta">
                 {msg.isDev ? <span className="wg-chat-dev-tag">DEV</span> : null}
                 <span className="wg-chat-msg-name" style={{ color: msg.color }}>{msg.name}</span>
+                <span className="wg-chat-msg-text">{msg.text}</span>
               </span>
-              <span className="wg-chat-msg-text">{msg.text}</span>
             </div>
           ))
         )}
