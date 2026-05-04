@@ -9,6 +9,7 @@ import { MARKET_ITEMS, type MarketItem, type MarketCategory } from "../../lib/ma
 import { CRATES } from "../../lib/crates";
 import { RARITY_COLOR, type Rarity } from "../../../../shared/constants";
 import { CrateModal } from "./CrateModal";
+import { ItemIcon } from "./icons/ItemIcon";
 
 type MarketModalProps = { open: boolean; onClose: () => void };
 type Tab = MarketCategory | "all" | "crates";
@@ -171,7 +172,7 @@ export function MarketModal({ open, onClose }: MarketModalProps) {
                         onMouseLeave={() => setHoverId(null)}
                       >
                         <div style={{ ...S.rarityStripe, background: rc, opacity: isOwned ? 0.4 : 0.85 }} />
-                        <ItemIcon category={item.category} rarity={item.rarity as Rarity} size={38} />
+                        <ItemIcon itemId={item.id} rarity={item.rarity as Rarity} size={42} />
                         <div style={S.cardName}>{item.name}</div>
                         <div style={{ ...S.cardRarity, color: rc }}>{item.rarity.toUpperCase()}</div>
                         <div style={S.cardTagline}>{item.tagline}</div>
@@ -256,47 +257,6 @@ function CrateShopGrid({ onOpen, gems }: { onOpen: () => void; gems: number }) {
   );
 }
 
-function ItemIcon({ category, rarity, size }: { category: string; rarity: Rarity; size: number }) {
-  const c = RARITY_COLOR[rarity] ?? "#8a7d68";
-  const s = size;
-  switch (category) {
-    case "skin": return (
-      <svg width={s} height={s} viewBox="0 0 40 40">
-        <circle cx="20" cy="20" r="17" fill={c} opacity="0.08"/>
-        <circle cx="20" cy="20" r="11" fill={c} opacity="0.25"/>
-        <circle cx="20" cy="20" r="6" fill={c} opacity="0.8"/>
-        <circle cx="15" cy="15" r="2.2" fill="#fff" opacity="0.28"/>
-        <circle cx="20" cy="20" r="17" fill="none" stroke={c} strokeWidth="1" opacity="0.4"/>
-      </svg>
-    );
-    case "hat": return (
-      <svg width={s} height={s} viewBox="0 0 40 40">
-        <polygon points="20,6 33,30 7,30" fill={c} opacity="0.75"/>
-        <polygon points="20,6 33,30 7,30" fill="none" stroke={c} strokeWidth="1" opacity="0.4"/>
-        <rect x="5" y="30" width="30" height="5" rx="2" fill={c} opacity="0.9"/>
-        <circle cx="20" cy="6" r="2.5" fill="#fff" opacity="0.3"/>
-      </svg>
-    );
-    case "charm": return (
-      <svg width={s} height={s} viewBox="0 0 40 40">
-        <polygon points="20,4 35,12 35,28 20,36 5,28 5,12" fill={c} opacity="0.1" stroke={c} strokeWidth="1.2"/>
-        <polygon points="20,10 29,16 29,24 20,30 11,24 11,16" fill={c} opacity="0.55"/>
-        <circle cx="20" cy="20" r="4" fill="#fff" opacity="0.2"/>
-        <circle cx="16" cy="16" r="1.5" fill="#fff" opacity="0.25"/>
-      </svg>
-    );
-    case "trail": return (
-      <svg width={s} height={s} viewBox="0 0 40 40">
-        <circle cx="6" cy="20" r="2" fill={c} opacity="0.2"/>
-        <circle cx="13" cy="20" r="3" fill={c} opacity="0.4"/>
-        <circle cx="21" cy="20" r="4.5" fill={c} opacity="0.6"/>
-        <circle cx="31" cy="20" r="7" fill={c} opacity="0.9"/>
-        <circle cx="28" cy="17" r="2.2" fill="#fff" opacity="0.3"/>
-      </svg>
-    );
-    default: return <svg width={s} height={s} viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill={c} opacity="0.4"/></svg>;
-  }
-}
 
 function GemSvg({ size = 14 }: { size?: number }) {
   return (
