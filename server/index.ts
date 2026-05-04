@@ -268,7 +268,8 @@ wss.on("connection", (socket, request) => {
         color: player.color,
         text,
         scope,
-        ts: now
+        ts: now,
+        isDev: player.isDev ?? false
       };
       const envelope: ServerMessage = { type: "chat_message", message: chatMsg };
       if (scope === "global") {

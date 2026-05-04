@@ -72,6 +72,7 @@ export type ChatMessage = {
   text: string;
   scope: ChatScope;
   ts: number;
+  isDev?: boolean;
 };
 
 export type PartyMember = {

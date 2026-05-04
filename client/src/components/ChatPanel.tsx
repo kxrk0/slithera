@@ -12,7 +12,6 @@ export function ChatPanel({ messages, inParty, onSend }: ChatPanelProps) {
   const [activeTab, setActiveTab] = useState<ChatScope>("global");
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = messages.filter((m) => m.scope === activeTab);
 
@@ -34,17 +33,21 @@ export function ChatPanel({ messages, inParty, onSend }: ChatPanelProps) {
   return (
     <div className="wg-chat-panel">
       <div className="wg-chat-tabs">
-        {(["global", "party"] as ChatScope[]).map((scope) => (
-          <button
-            key={scope}
-            className={`wg-chat-tab${activeTab === scope ? " active" : ""}${scope === "party" && !inParty ? " disabled" : ""}`}
-            type="button"
-            disabled={scope === "party" && !inParty}
-            onClick={() => setActiveTab(scope)}
-          >
-            {scope === "global" ? "GLOBAL" : "PARTY"}
-          </button>
-        ))}
+        <button
+          className={`wg-chat-tab${activeTab === "global" ? " active" : ""}`}
+          type="button"
+          onClick={() => setActiveTab("global")}
+        >
+          Global
+        </button>
+        <button
+          className={`wg-chat-tab${activeTab === "party" ? " active" : ""}${!inParty ? " disabled" : ""}`}
+          type="button"
+          disabled={!inParty}
+          onClick={() => setActiveTab("party")}
+        >
+          Party
+        </button>
       </div>
 
       <div className="wg-chat-messages" ref={listRef}>
@@ -56,7 +59,10 @@ export function ChatPanel({ messages, inParty, onSend }: ChatPanelProps) {
           filtered.map((msg) => (
             <div className="wg-chat-msg" key={msg.id}>
               <span className="wg-chat-msg-dot" style={{ background: msg.color }} />
-              <span className="wg-chat-msg-name" style={{ color: msg.color }}>{msg.name}</span>
+              <span className="wg-chat-msg-meta">
+                {msg.isDev ? <span className="wg-chat-dev-tag">DEV</span> : null}
+                <span className="wg-chat-msg-name" style={{ color: msg.color }}>{msg.name}</span>
+              </span>
               <span className="wg-chat-msg-text">{msg.text}</span>
             </div>
           ))
@@ -65,7 +71,6 @@ export function ChatPanel({ messages, inParty, onSend }: ChatPanelProps) {
 
       <div className="wg-chat-input-row">
         <input
-          ref={inputRef}
           className="wg-chat-input"
           type="text"
           placeholder={canSend ? "Message…" : "Join a party first…"}
@@ -83,7 +88,7 @@ export function ChatPanel({ messages, inParty, onSend }: ChatPanelProps) {
           disabled={!draft.trim() || !canSend}
           onClick={handleSend}
         >
-          <Send size={12} />
+          <Send size={13} />
         </button>
       </div>
     </div>
