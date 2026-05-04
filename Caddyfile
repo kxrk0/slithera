@@ -1,10 +1,26 @@
 slithera.duckdns.org {
-    # WebSocket connections → game directly (bypasses nginx)
-    @ws {
-        header Connection *Upgrade*
-        header Upgrade websocket
+    # WS paths → game directly
+    handle /ws* {
+        reverse_proxy localhost:3001
     }
-    handle @ws {
+
+    # Admin API → game directly
+    handle /admin/state {
+        reverse_proxy localhost:3001
+    }
+    handle /admin/kick {
+        reverse_proxy localhost:3001
+    }
+    handle /admin/broadcast {
+        reverse_proxy localhost:3001
+    }
+    handle /admin/ban {
+        reverse_proxy localhost:3001
+    }
+    handle /admin/unban {
+        reverse_proxy localhost:3001
+    }
+    handle /health {
         reverse_proxy localhost:3001
     }
 
