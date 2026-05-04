@@ -3,10 +3,12 @@ export const WORLD_HEIGHT = 3400;
 export const TICK_RATE = 60;
 export const SNAPSHOT_RATE = 45;
 export const MIN_ACTIVE_SNAKES = 6;
-export const MAX_FOOD = 240;
-export const MAX_FOOD_AFTER_DROPS = 380;
+export const MAX_ACTIVE_SNAKES = 14;
+export const TARGET_BOTS_PER_HUMAN = 4;
+export const MAX_FOOD = 260;
+export const MAX_FOOD_AFTER_DROPS = 520;
 export const START_LENGTH = 10;
-export const SCORE_PER_SEGMENT = 2;
+export const SCORE_PER_SEGMENT = 8;
 export const MIN_SCORE = 0;
 export const MAX_SEGMENTS = 260;
 export const BASE_SPEED = 168;
@@ -18,11 +20,16 @@ export const TAIL_SHRINK_SEGMENTS_PER_SECOND = 14;
 export const HEAD_RADIUS = 16;
 export const BODY_RADIUS = 14;
 export const FOOD_RADIUS = 8;
-export const FOOD_SCORE = 4;
+export const FOOD_SCORE = 1;
 export const FOOD_DRIFT_SPEED = 10;
-export const FOOD_ATTRACT_RADIUS = 185;
-export const FOOD_ATTRACT_SPEED = 390;
-export const BOOST_SHRINK_SCORE_PER_SECOND = 8;
+export const FOOD_ATTRACT_RADIUS = 90;
+export const FOOD_ATTRACT_SPEED = 80;
+export const BOOST_SHRINK_SCORE_PER_SECOND = 3;
+export const BOOST_MAX = 100;
+export const BOOST_DRAIN_PER_SECOND = 30;
+export const BOOST_REFILL_PER_SECOND = 18;
+export const BOOST_MIN_TO_START = 6;
+export const SELF_COLLISION_SKIP_SEGMENTS = 8;
 export const RESPAWN_DELAY_MS = 1400;
 
 export const PLAYER_COLORS = [
@@ -93,6 +100,13 @@ export const SNAKE_SKINS = [
     color: "#3a3a3f",
     accent: "#ff5252",
     shadow: "#0e0e10"
+  },
+  {
+    id: "lotus",
+    name: "Lotus",
+    color: "#f472b6",
+    accent: "#fce7f3",
+    shadow: "#831843"
   }
 ] as const;
 
@@ -122,6 +136,8 @@ export const ROPE_ACCESSORIES = [
   { id: "moon",  name: "Moon"  },
   { id: "cube",  name: "Cube"  },
   { id: "key",   name: "Key"   }
+  ,
+  { id: "venus", name: "Venüs" }
 ] as const;
 
 export type RopeAccessoryId = typeof ROPE_ACCESSORIES[number]["id"];

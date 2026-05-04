@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { loadAuthUser, useAuth } from "../../lib/auth";
 import { addCoins } from "../../lib/coins";
-import { loadDaily, formatCountdown, secondsUntilMidnight } from "../../lib/daily";
+import { claimDaily, loadDaily, formatCountdown, secondsUntilMidnight } from "../../lib/daily";
+import { getQuestProgressFor, loadQuestProgress, WEEKLY_QUESTS } from "../../lib/quests";
 import { addXp } from "../../lib/xp";
 import { WardrobeModal } from "./WardrobeModal";
 
@@ -31,34 +32,38 @@ function saveClaims(claims: Set<string>): void {
   } catch { /* ignore */ }
 }
 
-type WeeklyQuest = {
-  id: string;
-  name: string;
-  desc: string;
-  xp: number;
-  coins: number;
-  progress: number;
-  target: number;
-};
-
-const WEEKLY: WeeklyQuest[] = [
-  { id: "wkly.eat-200", name: "The Long Feast", desc: "Devour 200 morsels across all matches.", xp: 600, coins: 800, progress: 84, target: 200 },
-  { id: "wkly.kill-15", name: "The Hunter", desc: "Defeat 15 rival snakes.", xp: 800, coins: 600, progress: 5, target: 15 },
-  { id: "wkly.length-150", name: "Reach for the Sky", desc: "Reach length 150 in a single run.", xp: 500, coins: 700, progress: 0, target: 150 },
-  { id: "wkly.boost-20", name: "Velocity Cult", desc: "Win 20 boosts in succession without dying.", xp: 400, coins: 500, progress: 11, target: 20 }
-];
-
 export function QuestsModal({ open, onClose }: QuestsModalProps) {
-  const { isSignedIn } = useAuth();
-  const daily = loadDaily();
+  const { isSignedIn, user } = useAuth();
   const [countdown, setCountdown] = useState(() => secondsUntilMidnight());
   const [claimed, setClaimed] = useState<Set<string>>(() => loadClaims());
+  const [progressTick, setProgressTick] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     const id = window.setInterval(() => setCountdown(secondsUntilMidnight()), 1000);
     return () => window.clearInterval(id);
   }, [open]);
+
+  useEffect(() => {
+    setClaimed(loadClaims());
+  }, [user?.id]);
+
+  useEffect(() => {
+    const refresh = () => setProgressTick((t) => t + 1);
+    window.addEventListener("slithera-quest-progress-change", refresh);
+    window.addEventListener("slithera-daily-change", refresh);
+    window.addEventListener("slithera-auth-change", refresh);
+    return () => {
+      window.removeEventListener("slithera-quest-progress-change", refresh);
+      window.removeEventListener("slithera-daily-change", refresh);
+      window.removeEventListener("slithera-auth-change", refresh);
+    };
+  }, []);
+
+  // Re-read on each render so claim grants/refresh always show the latest snapshot
+  void progressTick;
+  const daily = loadDaily();
+  const progressSnapshot = loadQuestProgress();
 
   const claim = (questId: string, xp: number, coins: number) => {
     if (!isSignedIn || claimed.has(questId)) return;
@@ -82,7 +87,11 @@ export function QuestsModal({ open, onClose }: QuestsModalProps) {
           <div className="wg-quests-hero-meta">Daily and weekly. XP + coins on completion.</div>
           {!isSignedIn ? (
             <div className="wg-quests-locked">Sign in to take quests.</div>
-          ) : null}
+          ) : (
+            <div className="wg-quests-hero-meta" style={{ marginTop: 18, opacity: 0.7 }}>
+              Week of {progressSnapshot.weekStart}
+            </div>
+          )}
         </div>
       }
       side={
@@ -100,18 +109,31 @@ export function QuestsModal({ open, onClose }: QuestsModalProps) {
                   <div className="wg-quest-name">{daily.name}</div>
                   <div className="wg-quest-desc">{daily.desc}</div>
                 </div>
-                <div className="wg-quest-time">{formatCountdown(countdown)}</div>
+                {daily.progress >= daily.target && isSignedIn && !daily.claimed ? (
+                  <button
+                    className="wg-quest-claim"
+                    type="button"
+                    onClick={() => { claimDaily(); }}
+                  >
+                    Claim
+                  </button>
+                ) : daily.claimed ? (
+                  <button className="wg-quest-claim claimed" type="button" disabled>Claimed</button>
+                ) : (
+                  <div className="wg-quest-time">{formatCountdown(countdown)}</div>
+                )}
               </div>
               <div className="wg-quest-bar"><i style={{ width: `${dailyPct}%` }} /></div>
               <div className="wg-quest-meta">
                 <span>{daily.progress} / {daily.target}</span>
-                <span className="reward">+{daily.reward} XP</span>
+                <span className="reward">+{daily.reward} XP · ◉ {Math.floor(daily.reward * 0.6)}</span>
               </div>
             </div>
 
-            {WEEKLY.map((q) => {
-              const pct = Math.max(0, Math.min(100, Math.round((q.progress / q.target) * 100)));
-              const ready = q.progress >= q.target;
+            {WEEKLY_QUESTS.map((q) => {
+              const current = getQuestProgressFor(q);
+              const pct = Math.max(0, Math.min(100, Math.round((current / q.target) * 100)));
+              const ready = current >= q.target;
               return (
                 <div key={q.id} className={`wg-quest-card${isSignedIn ? "" : " locked"}`}>
                   <div className="wg-quest-row-head">
@@ -137,7 +159,7 @@ export function QuestsModal({ open, onClose }: QuestsModalProps) {
                   </div>
                   <div className="wg-quest-bar"><i style={{ width: `${pct}%` }} /></div>
                   <div className="wg-quest-meta">
-                    <span>{q.progress} / {q.target}</span>
+                    <span>{current.toLocaleString()} / {q.target.toLocaleString()}</span>
                     <span className="reward">+{q.xp} XP · ◉ {q.coins}</span>
                   </div>
                 </div>

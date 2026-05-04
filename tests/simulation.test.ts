@@ -9,7 +9,9 @@ import {
   ROPE_ACCESSORIES,
   START_LENGTH,
   TAIL_GROW_SEGMENTS_PER_SECOND,
-  TICK_RATE
+  TICK_RATE,
+  WORLD_HEIGHT,
+  WORLD_WIDTH
 } from "../shared/constants";
 import { applyInput, createPlayer, createWorld, desiredSegmentCount, makeSegments, makeSnapshot, stepWorld } from "../shared/simulation";
 import { distance } from "../shared/math";
@@ -54,6 +56,10 @@ describe("authoritative simulation", () => {
     const world = createWorld(10);
     world.players.clear();
     const player = createPlayer(world, "grow_test", "Grow");
+    // Place player safely at center, away from any bots that ensureBots will spawn
+    player.heading = 0;
+    player.targetHeading = 0;
+    player.segments = makeSegments({ x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 }, 0, START_LENGTH);
     const initialLength = player.segments.length;
 
     player.score = MIN_SCORE + 120;
@@ -66,25 +72,30 @@ describe("authoritative simulation", () => {
     expect(player.segments.length).toBeLessThanOrEqual(initialLength + TAIL_GROW_SEGMENTS_PER_SECOND + 1);
   });
 
-  it("caps snake length and publishes length as score", () => {
+  it("caps snake length and publishes food-based score", () => {
     const world = createWorld(11);
     const player = createPlayer(world, "score_test", "Pilot");
+    player.score = 17;
 
     const snapshot = makeSnapshot(world, player.id);
     const publishedPlayer = snapshot.players.find((item) => item.id === player.id);
 
     expect(desiredSegmentCount(10_000_000)).toBe(MAX_SEGMENTS);
-    expect(publishedPlayer?.score).toBe(player.segments.length);
+    expect(publishedPlayer?.score).toBe(17);
     expect(Number.isInteger(publishedPlayer?.score)).toBe(true);
   });
 
   it("pulls nearby food toward a player before collection", () => {
     const world = createWorld(13);
     const player = createPlayer(world, "magnet_test", "Pilot");
+    // Park the player away from bots and aim straight right so the head moves toward the pellet
+    player.heading = 0;
+    player.targetHeading = 0;
+    player.segments = makeSegments({ x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 }, 0, 10);
     const head = player.segments[0];
     const pellet = [...world.food.values()][0];
 
-    pellet.x = head.x + 150;
+    pellet.x = head.x + 60; // inside FOOD_ATTRACT_RADIUS
     pellet.y = head.y;
     pellet.driftAngle = 0;
     pellet.driftSpeed = 0;
@@ -108,7 +119,7 @@ describe("authoritative simulation", () => {
     expect(world.food.size).toBeLessThanOrEqual(MAX_FOOD);
   });
 
-  it("drops victim score as food instead of awarding it directly to the killer", () => {
+  it("drops all victim score as food on death and awards no instant bonus to killer", () => {
     const world = createWorld(31);
     const victim = createPlayer(world, "victim", "Victim");
     const killer = createPlayer(world, "killer", "Killer");

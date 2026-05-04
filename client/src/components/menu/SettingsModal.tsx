@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocale, type Locale } from "../../lib/i18n";
 import { FPS_OPTIONS, loadSettings, saveSettings, type GameSettings } from "../../lib/settings";
 import { WardrobeModal } from "./WardrobeModal";
 
@@ -8,6 +9,7 @@ type SettingsModalProps = {
 };
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
+  const { locale, setLocale } = useLocale();
   const [draft, setDraft] = useState<GameSettings>(() => loadSettings());
 
   const update = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
@@ -47,6 +49,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           </div>
 
           <div className="wg-settings-list">
+            <SegmentedControl
+              label="Language"
+              value={locale}
+              options={[
+                { value: "en", label: "English" },
+                { value: "tr", label: "Türkçe" }
+              ]}
+              onChange={(v) => setLocale(v as Locale)}
+            />
+
             <Slider
               label="Master Volume"
               value={draft.masterVolume}

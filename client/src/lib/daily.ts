@@ -1,6 +1,13 @@
+import { loadAuthUser } from "./auth";
+import { addCoins } from "./coins";
+import { addXp } from "./xp";
+
+export type DailyMetric = "food-eaten" | "kills" | "best-length";
+
 export type DailyChallenge = {
   date: string;
   challengeId: string;
+  metric: DailyMetric;
   name: string;
   desc: string;
   target: number;
@@ -9,14 +16,11 @@ export type DailyChallenge = {
   claimed: boolean;
 };
 
-const STORAGE_KEY = "slithera-daily";
-
-const POOL: { id: string; name: string; desc: string; target: number; reward: number }[] = [
-  { id: "boost-eat", name: "Today's Tribute", desc: "Devour 30 morsels mid-boost without dying — and feast on 250 XP.", target: 30, reward: 250 },
-  { id: "top-five", name: "Hold the Hall", desc: "Survive 2 minutes inside the top 5.", target: 120, reward: 300 },
-  { id: "trio", name: "Trio of Heads", desc: "Defeat 3 rival snakes in a single life.", target: 3, reward: 400 },
-  { id: "long-coil", name: "The Long Coil", desc: "Reach 5,000 score in one run.", target: 5000, reward: 350 },
-  { id: "near-wall", name: "On the Brink", desc: "Eat 12 morsels within a head's length of the arena wall.", target: 12, reward: 220 }
+const POOL: { id: string; metric: DailyMetric; name: string; desc: string; target: number; reward: number }[] = [
+  { id: "feast-30",     metric: "food-eaten",  name: "Today's Tribute", desc: "Devour 30 morsels.",              target: 30,   reward: 250 },
+  { id: "long-coil-50", metric: "best-length", name: "The Long Coil",   desc: "Reach length 50 in one run.",     target: 50,   reward: 350 },
+  { id: "trio",         metric: "kills",       name: "Trio of Heads",   desc: "Defeat 3 rivals in one session.", target: 3,    reward: 400 },
+  { id: "feast-100",    metric: "food-eaten",  name: "Glutton's Vow",   desc: "Devour 100 morsels.",             target: 100,  reward: 600 }
 ];
 
 function todayKey(): string {
@@ -30,10 +34,15 @@ function pickFor(date: string): typeof POOL[number] {
   return POOL[hash % POOL.length];
 }
 
+function storageKey(): string {
+  const user = loadAuthUser();
+  return user ? `slithera-daily:${user.id}` : "slithera-daily:guest";
+}
+
 export function loadDaily(): DailyChallenge {
   const today = todayKey();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey());
     if (raw) {
       const parsed = JSON.parse(raw) as DailyChallenge;
       if (parsed.date === today) return parsed;
@@ -45,6 +54,7 @@ export function loadDaily(): DailyChallenge {
   const fresh: DailyChallenge = {
     date: today,
     challengeId: pick.id,
+    metric: pick.metric,
     name: pick.name,
     desc: pick.desc,
     target: pick.target,
@@ -53,9 +63,42 @@ export function loadDaily(): DailyChallenge {
     claimed: false
   };
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+    window.localStorage.setItem(storageKey(), JSON.stringify(fresh));
   } catch { /* ignore */ }
   return fresh;
+}
+
+function saveDaily(daily: DailyChallenge): void {
+  try {
+    window.localStorage.setItem(storageKey(), JSON.stringify(daily));
+    window.dispatchEvent(new CustomEvent("slithera-daily-change"));
+  } catch { /* ignore */ }
+}
+
+// Record a finished game's contribution toward the daily challenge.
+export function recordDailyRunEnd(run: { foodEaten: number; kills: number; length: number }): void {
+  const daily = loadDaily();
+  if (daily.claimed) return;
+  let next = daily.progress;
+  switch (daily.metric) {
+    case "food-eaten": next = daily.progress + run.foodEaten; break;
+    case "kills":      next = daily.progress + run.kills; break;
+    case "best-length": next = Math.max(daily.progress, run.length); break;
+  }
+  next = Math.min(next, daily.target);
+  if (next === daily.progress) return;
+  saveDaily({ ...daily, progress: next });
+}
+
+// Claim the daily reward. Returns true on successful claim.
+export function claimDaily(): boolean {
+  const daily = loadDaily();
+  if (daily.claimed) return false;
+  if (daily.progress < daily.target) return false;
+  addXp(daily.reward);
+  addCoins(Math.floor(daily.reward * 0.6));
+  saveDaily({ ...daily, claimed: true });
+  return true;
 }
 
 export function secondsUntilMidnight(now = new Date()): number {

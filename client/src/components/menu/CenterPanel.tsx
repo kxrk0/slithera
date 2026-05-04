@@ -1,3 +1,6 @@
+import { validateName } from "../../../../shared/names";
+import { useLocale } from "../../lib/i18n";
+
 type CenterPanelProps = {
   name: string;
   onNameChange: (name: string) => void;
@@ -9,9 +12,18 @@ type CenterPanelProps = {
 };
 
 export function CenterPanel({ name, onNameChange, onStart, onSettings, onStats, onHowToPlay, latencyMs }: CenterPanelProps) {
+  const { t } = useLocale();
   const ping = typeof latencyMs === "number" && latencyMs > 0 ? `${latencyMs}ms` : "—";
   const trimmed = name.trim();
-  const canStart = trimmed.length > 0;
+  const validation = validateName(name);
+  const canStart = validation.ok;
+  const VALIDATION_MESSAGE: Record<string, string> = {
+    empty: t("name.empty"),
+    "too-short": t("name.tooShort"),
+    "too-long": t("name.tooLong"),
+    profanity: t("name.profanity")
+  };
+  const errorMessage = validation.ok ? "" : VALIDATION_MESSAGE[validation.reason] ?? "";
   return (
     <section className="wg-center-panel" aria-label="Arena entry">
       <div className="wg-brand-block">
@@ -25,7 +37,7 @@ export function CenterPanel({ name, onNameChange, onStart, onSettings, onStats, 
         <div className="wg-region-chip">US-East · 92ms</div>
         <div className="wg-region-chip">Asia · 180ms</div>
       </div>
-      <label className="wg-name-input-wrap">
+      <label className={`wg-name-input-wrap${!canStart && trimmed.length > 0 ? " invalid" : ""}`}>
         <span className="wg-name-input-icon" aria-hidden="true">◈</span>
         <input
           className="wg-name-input"
@@ -33,12 +45,16 @@ export function CenterPanel({ name, onNameChange, onStart, onSettings, onStats, 
           onChange={(event) => onNameChange(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter" && canStart) onStart(); }}
           maxLength={16}
-          placeholder="Choose your name…"
+          placeholder={t("menu.choosePlaceholder")}
           aria-label="Player name"
+          aria-invalid={!canStart && trimmed.length > 0}
           autoFocus
         />
         <span className="wg-name-meta">{name.length}/16</span>
       </label>
+      {errorMessage && trimmed.length > 0 ? (
+        <div className="wg-name-error" role="alert">{errorMessage}</div>
+      ) : null}
       <button
         type="button"
         className={canStart ? "wg-play-btn" : "wg-play-btn disabled"}
@@ -46,20 +62,20 @@ export function CenterPanel({ name, onNameChange, onStart, onSettings, onStats, 
         disabled={!canStart}
       >
         <div>
-          <small>{canStart ? "BEGIN THE ARENA" : "ENTER A NAME TO BEGIN"}</small>
-          <span>{canStart ? `Enter as ${trimmed}` : "Awaiting your sigil"}</span>
+          <small>{canStart ? t("menu.beginArena").toUpperCase() : t("menu.enterName").toUpperCase()}</small>
+          <span>{canStart && validation.ok ? t("menu.enterAs", { name: validation.value }) : t("menu.awaiting")}</span>
         </div>
         <span className="arrow-circle">→</span>
       </button>
       <div className="wg-secondary-row">
         <button type="button" className="wg-secondary-btn" onClick={onSettings}>
-          <span className="icon">⚙</span><span>Settings</span>
+          <span className="icon">⚙</span><span>{t("menu.settings")}</span>
         </button>
         <button type="button" className="wg-secondary-btn" onClick={onStats}>
-          <span className="icon">📊</span><span>Stats</span>
+          <span className="icon">🏵</span><span>{t("menu.achievements")}</span>
         </button>
         <button type="button" className="wg-secondary-btn" onClick={onHowToPlay}>
-          <span className="icon">❔</span><span>How to Play</span>
+          <span className="icon">❔</span><span>{t("menu.howToPlay")}</span>
         </button>
       </div>
     </section>

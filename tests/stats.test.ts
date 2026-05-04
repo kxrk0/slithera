@@ -12,8 +12,10 @@ describe("stats library", () => {
   it("loadStats returns zeros when nothing stored", () => {
     const s = loadStats();
     expect(s.bestScore).toBe(0);
+    expect(s.bestLength).toBe(0);
     expect(s.totalKills).toBe(0);
     expect(s.totalPlayedSec).toBe(0);
+    expect(s.totalFoodEaten).toBe(0);
     expect(s.winStreak).toBe(0);
     expect(s.gamesPlayed).toBe(0);
   });
@@ -26,19 +28,21 @@ describe("stats library", () => {
     expect(reloaded.totalPlayedSec).toBe(0);
   });
 
-  it("recordGameEnd takes max of best score and increments counters", () => {
+  it("recordGameEnd takes max of best score/length and increments counters", () => {
     saveStats({ bestScore: 1000, totalKills: 5, gamesPlayed: 2 });
-    recordGameEnd({ score: 800, kills: 1, playedSec: 30 });
-    recordGameEnd({ score: 1500, kills: 2, playedSec: 60 });
+    recordGameEnd({ score: 800, length: 25, kills: 1, playedSec: 30, foodEaten: 800 });
+    recordGameEnd({ score: 1500, length: 60, kills: 2, playedSec: 60, foodEaten: 1500 });
     const s = loadStats();
     expect(s.bestScore).toBe(1500);
+    expect(s.bestLength).toBe(60);
     expect(s.totalKills).toBe(8);
     expect(s.totalPlayedSec).toBe(90);
+    expect(s.totalFoodEaten).toBe(2300);
     expect(s.gamesPlayed).toBe(4);
   });
 
   it("deriveTier returns Initiate at zero", () => {
-    const t = deriveTier({ bestScore: 0, totalKills: 0, totalPlayedSec: 0, winStreak: 0, gamesPlayed: 0 });
+    const t = deriveTier({ bestScore: 0, bestLength: 0, totalKills: 0, totalPlayedSec: 0, totalFoodEaten: 0, winStreak: 0, gamesPlayed: 0 });
     expect(t.index).toBe(0);
     expect(t.name).toBe(TIER_NAMES[0]);
     expect(t.progress).toBeGreaterThanOrEqual(0);
@@ -46,8 +50,8 @@ describe("stats library", () => {
   });
 
   it("deriveTier advances with score and kills", () => {
-    const lowTier = deriveTier({ bestScore: 100, totalKills: 0, totalPlayedSec: 0, winStreak: 0, gamesPlayed: 0 });
-    const highTier = deriveTier({ bestScore: 8000, totalKills: 30, totalPlayedSec: 0, winStreak: 0, gamesPlayed: 0 });
+    const lowTier = deriveTier({ bestScore: 100, bestLength: 0, totalKills: 0, totalPlayedSec: 0, totalFoodEaten: 0, winStreak: 0, gamesPlayed: 0 });
+    const highTier = deriveTier({ bestScore: 8000, bestLength: 0, totalKills: 30, totalPlayedSec: 0, totalFoodEaten: 0, winStreak: 0, gamesPlayed: 0 });
     expect(highTier.index).toBeGreaterThan(lowTier.index);
   });
 });

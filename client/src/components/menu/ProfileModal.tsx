@@ -1,38 +1,56 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth";
-import { formatCoins, loadCoins } from "../../lib/coins";
-import { loadInventory } from "../../lib/inventory";
-import { loadStats } from "../../lib/stats";
-import { deriveLevel, loadXp } from "../../lib/xp";
+import { formatCoins } from "../../lib/coins";
+import { useCoins, useInventoryItems, useStats, useXp } from "../../lib/useEconomy";
+import { MARKET_ITEMS } from "../../lib/marketCatalog";
+import { loadMatches, type MatchRecord } from "../../lib/matchHistory";
 import { WardrobeModal } from "./WardrobeModal";
 
 type ProfileModalProps = { open: boolean; onClose: () => void };
 
+const ITEM_LOOKUP: Record<string, { name: string; glyph: string }> = MARKET_ITEMS.reduce((acc, item) => {
+  acc[item.id] = { name: item.name, glyph: item.glyph };
+  return acc;
+}, {} as Record<string, { name: string; glyph: string }>);
+
+function describeItem(id: string): { name: string; glyph: string } {
+  if (ITEM_LOOKUP[id]) return ITEM_LOOKUP[id];
+  // fallback for legacy or unknown ids
+  const [, raw = id] = id.split(".");
+  return { name: raw.split("-").map((s) => s[0]?.toUpperCase() + s.slice(1)).join(" "), glyph: "✦" };
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
+}
+
+function isUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  return /^https?:\/\//i.test(value);
+}
+
 export function ProfileModal({ open, onClose }: ProfileModalProps) {
   const { user, signOut } = useAuth();
-  const [coins, setCoins] = useState<number>(() => loadCoins());
-  const [xp, setXp] = useState(() => loadXp());
-  const [items, setItems] = useState<string[]>(() => loadInventory().itemIds);
+  const coins = useCoins();
+  const items = useInventoryItems();
+  const { level } = useXp();
+  const stats = useStats();
+  const [matches, setMatches] = useState<MatchRecord[]>(() => loadMatches());
 
   useEffect(() => {
-    if (!open) return;
-    const refresh = () => {
-      setCoins(loadCoins());
-      setXp(loadXp());
-      setItems(loadInventory().itemIds);
-    };
-    window.addEventListener("slithera-coins-change", refresh);
-    window.addEventListener("slithera-xp-change", refresh);
-    window.addEventListener("slithera-inventory-change", refresh);
-    return () => {
-      window.removeEventListener("slithera-coins-change", refresh);
-      window.removeEventListener("slithera-xp-change", refresh);
-      window.removeEventListener("slithera-inventory-change", refresh);
-    };
-  }, [open]);
+    setMatches(loadMatches());
+  }, [user?.id]);
 
-  const stats = loadStats();
-  const level = deriveLevel(xp);
+  useEffect(() => {
+    const refresh = () => setMatches(loadMatches());
+    window.addEventListener("slithera-matches-change", refresh);
+    return () => window.removeEventListener("slithera-matches-change", refresh);
+  }, []);
+
   const pct = Math.round((level.current / level.needed) * 100);
 
   if (!user) {
@@ -68,7 +86,13 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
       onClose={onClose}
       preview={
         <div className="wg-profile-modal-hero">
-          <div className="wg-profile-modal-avatar">{user.avatar}</div>
+          <div className="wg-profile-modal-avatar">
+            {isUrl(user.avatar) ? (
+              <img src={user.avatar} alt={user.name} referrerPolicy="no-referrer" />
+            ) : (
+              user.avatar
+            )}
+          </div>
           <div className="wg-profile-modal-name">{user.name}</div>
           <div className="wg-profile-modal-meta">Level {level.level} · Initiate</div>
           <div className="wg-profile-modal-bar">
@@ -89,24 +113,52 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
             <div className="wg-modal-subtitle">Permanent record. Cosmetics persist across sessions.</div>
           </div>
 
-          <div className="wg-profile-modal-stats">
-            <div><strong>{stats.bestScore.toLocaleString()}</strong><span>Best Length</span></div>
-            <div><strong>{stats.totalKills}</strong><span>Kills</span></div>
-            <div><strong>{stats.gamesPlayed}</strong><span>Games</span></div>
-            <div><strong>{stats.winStreak}</strong><span>Streak</span></div>
-          </div>
+          <div className="wg-profile-content">
+            <div className="wg-profile-modal-stats">
+              <div><strong>{stats.bestLength.toLocaleString()}</strong><span>Best Length</span></div>
+              <div><strong>{stats.bestScore.toLocaleString()}</strong><span>Best Score</span></div>
+              <div><strong>{stats.totalKills}</strong><span>Kills</span></div>
+              <div><strong>{stats.gamesPlayed}</strong><span>Games</span></div>
+            </div>
 
-          <div className="wg-profile-modal-inventory">
-            <div className="wg-modal-eyebrow" style={{ marginBottom: 6 }}>INVENTORY · {items.length}</div>
-            {items.length > 0 ? (
-              <div className="wg-profile-modal-items">
-                {items.map((id) => (
-                  <span key={id} className="wg-inventory-chip">{id}</span>
-                ))}
-              </div>
-            ) : (
-              <div className="wg-profile-modal-empty">Nothing yet. Visit the Vault.</div>
-            )}
+            <div className="wg-profile-modal-inventory">
+              <div className="wg-modal-eyebrow" style={{ marginBottom: 6 }}>INVENTORY · {items.length}</div>
+              {items.length > 0 ? (
+                <div className="wg-profile-modal-items">
+                  {items.map((id) => {
+                    const { name, glyph } = describeItem(id);
+                    return (
+                      <span key={id} className="wg-inventory-chip" title={id}>
+                        <span aria-hidden="true">{glyph}</span> {name}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="wg-profile-modal-empty">Nothing yet. Visit the Vault.</div>
+              )}
+            </div>
+
+            <div className="wg-profile-modal-history">
+              <div className="wg-modal-eyebrow" style={{ marginBottom: 6 }}>RECENT RUNS · {matches.length}</div>
+              {matches.length > 0 ? (
+                <div className="wg-match-list">
+                  {matches.map((m) => (
+                    <div className="wg-match-row" key={m.endedAt}>
+                      <div className="wg-match-time">{formatRelativeTime(m.endedAt)}</div>
+                      <div className="wg-match-stats">
+                        <span><strong>{m.length}</strong>len</span>
+                        <span><strong>{m.kills}</strong>k</span>
+                        <span><strong>{m.foodEaten}</strong>food</span>
+                      </div>
+                      <div className="wg-match-rewards">+{m.coinsEarned}◉</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="wg-profile-modal-empty">No runs yet. Begin the arena.</div>
+              )}
+            </div>
           </div>
 
           <div className="wg-equip-row">
@@ -118,3 +170,4 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
     />
   );
 }
+

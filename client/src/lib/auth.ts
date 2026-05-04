@@ -1,14 +1,26 @@
 import { useEffect, useState, useCallback } from "react";
+import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, type User } from "firebase/auth";
+import { auth } from "./firebase";
 
 export type AuthUser = {
   id: string;
   name: string;
-  avatar: string; // emoji or initial
+  avatar: string;
   email: string;
   signedInAt: number;
 };
 
 const STORAGE_KEY = "slithera-auth";
+
+function toAuthUser(user: User): AuthUser {
+  return {
+    id: user.uid,
+    name: user.displayName ?? user.email?.split("@")[0] ?? "Player",
+    avatar: user.photoURL ?? pickAvatarFor(user.displayName ?? ""),
+    email: user.email ?? "",
+    signedInAt: Date.now()
+  };
+}
 
 export function loadAuthUser(): AuthUser | null {
   try {
@@ -31,51 +43,45 @@ export function saveAuthUser(user: AuthUser | null): void {
   } catch { /* ignore */ }
 }
 
-/**
- * Mock Google sign-in. In production this would open the OAuth popup.
- * Here we just create a fake user. Returns a promise that resolves after a brief delay.
- */
-export function signInWithGoogle(name?: string): Promise<AuthUser> {
-  return new Promise((resolve) => {
-    window.setTimeout(() => {
-      const safeName = (name && name.trim()) || "Player";
-      // Deterministic id from name — so the same player keeps their inventory across sign-ins.
-      const idSlug = safeName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "player";
-      const user: AuthUser = {
-        id: `google_${idSlug}`,
-        name: safeName,
-        avatar: pickAvatarFor(safeName),
-        email: `${idSlug}@gmail.example`,
-        signedInAt: Date.now()
-      };
-      saveAuthUser(user);
-      resolve(user);
-    }, 600);
+export function signInWithGoogle(): Promise<AuthUser> {
+  const provider = new GoogleAuthProvider();
+  return signInWithPopup(auth, provider).then((result) => {
+    const user = toAuthUser(result.user);
+    saveAuthUser(user);
+    return user;
   });
 }
 
 export function signOut(): void {
+  void firebaseSignOut(auth);
   saveAuthUser(null);
 }
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(() => loadAuthUser());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handler = () => setUser(loadAuthUser());
-    window.addEventListener("slithera-auth-change", handler);
-    window.addEventListener("storage", handler);
-    return () => {
-      window.removeEventListener("slithera-auth-change", handler);
-      window.removeEventListener("storage", handler);
-    };
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const u = toAuthUser(firebaseUser);
+        saveAuthUser(u);
+        setUser(u);
+      } else {
+        saveAuthUser(null);
+        setUser(null);
+      }
+      setLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  const signIn = useCallback((name?: string) => signInWithGoogle(name), []);
+  const signIn = useCallback(() => signInWithGoogle(), []);
 
   return {
     user,
     isSignedIn: user !== null,
+    loading,
     signIn,
     signOut: () => { signOut(); setUser(null); }
   };

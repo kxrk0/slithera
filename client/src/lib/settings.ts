@@ -31,6 +31,7 @@ export function saveSettings(partial: Partial<GameSettings>): GameSettings {
   const merged = { ...loadSettings(), ...partial };
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    window.dispatchEvent(new CustomEvent("slithera-settings-change", { detail: merged }));
   } catch { /* ignore */ }
   return merged;
 }

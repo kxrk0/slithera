@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { LeaderboardEntry } from "../../../../shared/types";
 import { loadDaily, secondsUntilMidnight } from "../../lib/daily";
 import { loadStats } from "../../lib/stats";
+import { AchievementsModal } from "./AchievementsModal";
 import { ArenaHallPanel } from "./ArenaHallPanel";
 import { CenterPanel } from "./CenterPanel";
 import { CharmPicker } from "./CharmPicker";
 import { HatPicker } from "./HatPicker";
 import { LifetimePanel } from "./LifetimePanel";
 import { LoadoutPanel } from "./LoadoutPanel";
+import { StreakBanner } from "./StreakBanner";
 import { MarketModal } from "./MarketModal";
 import { ProfileModal } from "./ProfileModal";
 import { QuestsModal } from "./QuestsModal";
@@ -52,6 +54,7 @@ export function WarmGoldMenu({
   const [questsOpen, setQuestsOpen] = useState(false);
   const [socialOpen, setSocialOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
 
   return (
     <section className="wg-stage" aria-label="Slithera main menu">
@@ -68,6 +71,7 @@ export function WarmGoldMenu({
             onOpenHat={() => setModal("hat")}
             onOpenCharm={() => setModal("charm")}
           />
+          <StreakBanner />
           <LifetimePanel stats={stats} />
         </div>
         <CenterPanel
@@ -76,7 +80,7 @@ export function WarmGoldMenu({
           onNameChange={onNameChange}
           onStart={onStart}
           onSettings={() => setSettingsOpen(true)}
-          onStats={noop}
+          onStats={() => setAchievementsOpen(true)}
           onHowToPlay={noop}
         />
         <ArenaHallPanel
@@ -120,6 +124,7 @@ export function WarmGoldMenu({
       <QuestsModal open={questsOpen} onClose={() => setQuestsOpen(false)} />
       <SocialModal open={socialOpen} onClose={() => setSocialOpen(false)} />
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <AchievementsModal open={achievementsOpen} onClose={() => setAchievementsOpen(false)} />
     </section>
   );
 }

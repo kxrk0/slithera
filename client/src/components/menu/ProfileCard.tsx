@@ -41,7 +41,7 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
     const handleSignIn = async () => {
       setSigning(true);
       try {
-        await signIn(playerName);
+        await signIn();
       } finally {
         setSigning(false);
       }
@@ -82,7 +82,11 @@ export function ProfileCard({ onOpenMarket, onOpenQuests, onOpenSocial, onOpenPr
   return (
     <div className="wg-profile-card">
       <div className="wg-profile-head">
-        <div className="wg-profile-avatar">{user.avatar}</div>
+        <div className="wg-profile-avatar">
+          {user.avatar.startsWith("http")
+            ? <img src={user.avatar} alt={user.name} referrerPolicy="no-referrer" />
+            : user.avatar}
+        </div>
         <div className="wg-profile-info">
           <div className="wg-profile-name">{user.name}</div>
           <div className="wg-profile-meta">Level {level.level} · Initiate</div>

@@ -1,6 +1,10 @@
 import {
   BASE_SPEED,
   BODY_RADIUS,
+  BOOST_DRAIN_PER_SECOND,
+  BOOST_MAX,
+  BOOST_MIN_TO_START,
+  BOOST_REFILL_PER_SECOND,
   BOOST_SHRINK_SCORE_PER_SECOND,
   BOOST_SPEED,
   BOT_NAMES,
@@ -10,13 +14,16 @@ import {
   FOOD_RADIUS,
   FOOD_SCORE,
   HEAD_RADIUS,
+  MAX_ACTIVE_SNAKES,
   MAX_FOOD_AFTER_DROPS,
   MAX_FOOD,
   MAX_SEGMENTS,
   MIN_ACTIVE_SNAKES,
   MIN_SCORE,
+  TARGET_BOTS_PER_HUMAN,
   PLAYER_COLORS,
   RESPAWN_DELAY_MS,
+  ROPE_ACCESSORIES,
   SCORE_PER_SEGMENT,
   SEGMENT_SPACING,
   SNAKE_SKINS,
@@ -27,8 +34,12 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH
 } from "./constants.js";
+import { canUseCharmFor, canUseSkinFor } from "./exclusive.js";
+import { sanitizePlayerName } from "./names.js";
 import { clamp, clampToWorld, distance, distanceSq, headingToVector, randomPoint, rotateToward, seededRandom } from "./math.js";
 import type { ClientInput, FoodPellet, GameEvent, LeaderboardEntry, PlayerState, ServerSnapshot, Vec2 } from "./types.js";
+
+export type BotProfile = "hunter" | "grazer" | "coward" | "wall-hugger";
 
 export type World = {
   tick: number;
@@ -36,6 +47,7 @@ export type World = {
   players: Map<string, PlayerState>;
   food: Map<string, FoodPellet>;
   botInputs: Map<string, ClientInput>;
+  botProfiles: Map<string, BotProfile>;
   events: GameEvent[];
 };
 
@@ -48,6 +60,7 @@ export function createWorld(seed = 1337): World {
     players: new Map(),
     food: new Map(),
     botInputs: new Map(),
+    botProfiles: new Map(),
     events: []
   };
 
@@ -63,20 +76,27 @@ export function createPlayer(
   bot = false,
   skinId?: string,
   ropeAccessoryId?: string,
-  hatId?: string
+  hatId?: string,
+  uid?: string
 ): PlayerState {
   const fallbackColor = PLAYER_COLORS[world.players.size % PLAYER_COLORS.length];
-  const skin = SNAKE_SKINS.find((item) => item.id === skinId) ?? SNAKE_SKINS[world.players.size % SNAKE_SKINS.length];
+  // Server-authoritative skin/charm gating: ignore exclusive selections without proof of UID.
+  const requestedSkin = skinId && canUseSkinFor(skinId, uid) ? skinId : undefined;
+  const skin = SNAKE_SKINS.find((item) => item.id === requestedSkin) ?? SNAKE_SKINS[world.players.size % SNAKE_SKINS.length];
+  const safeRope = ropeAccessoryId && canUseCharmFor(ropeAccessoryId, uid) && ROPE_ACCESSORIES.some((r) => r.id === ropeAccessoryId)
+    ? ropeAccessoryId
+    : undefined;
+  const safeHat = hatId; // hats currently have no exclusivity table
   const spawn = randomPoint(world.rng);
   const heading = world.rng() * Math.PI * 2 - Math.PI;
   const player: PlayerState = {
     id,
-    name: sanitizeName(name, bot ? "Bot" : "Player"),
+    name: sanitizePlayerName(name, bot),
     skinId: skin.id,
     color: skin.color || fallbackColor,
     accent: skin.accent,
     score: MIN_SCORE,
-    boost: 100,
+    boost: BOOST_MAX,
     alive: true,
     bot,
     boosting: false,
@@ -86,8 +106,8 @@ export function createPlayer(
     segments: makeSegments(spawn, heading, START_LENGTH),
     segmentProgress: 0,
     kills: 0,
-    ropeAccessoryId,
-    hatId
+    ropeAccessoryId: safeRope,
+    hatId: safeHat
   };
 
   world.players.set(id, player);
@@ -98,6 +118,7 @@ export function createPlayer(
 export function removePlayer(world: World, id: string): void {
   world.players.delete(id);
   world.botInputs.delete(id);
+  world.botProfiles.delete(id);
 }
 
 export function applyInput(world: World, id: string, input: ClientInput): void {
@@ -116,7 +137,7 @@ export function respawn(world: World, id: string, now = Date.now()): PlayerState
   const spawn = randomPoint(world.rng);
   const heading = world.rng() * Math.PI * 2 - Math.PI;
   player.score = MIN_SCORE;
-  player.boost = 100;
+  player.boost = BOOST_MAX;
   player.alive = true;
   player.boosting = false;
   player.speed = BASE_SPEED;
@@ -150,12 +171,17 @@ export function stepWorld(world: World, dt: number, now = Date.now()): GameEvent
       player.targetHeading = input.heading;
     }
 
-    const boosting = Boolean(input?.boosting);
+    // Boost: requires meter > 0 to start, drains while held, refills when released.
+    const wantsBoost = Boolean(input?.boosting);
+    const canStartBoost = wantsBoost && (player.boosting ? player.boost > 0 : player.boost >= BOOST_MIN_TO_START);
+    const boosting = canStartBoost;
     player.boosting = boosting;
     player.speed = boosting ? BOOST_SPEED : BASE_SPEED;
-    player.boost = 100;
     if (boosting) {
+      player.boost = Math.max(0, player.boost - BOOST_DRAIN_PER_SECOND * stepDt);
       player.score = Math.max(MIN_SCORE, player.score - BOOST_SHRINK_SCORE_PER_SECOND * stepDt);
+    } else {
+      player.boost = Math.min(BOOST_MAX, player.boost + BOOST_REFILL_PER_SECOND * stepDt);
     }
 
     player.heading = rotateToward(player.heading, player.targetHeading, effectiveTurnRate(player) * stepDt);
@@ -181,7 +207,7 @@ export function makeSnapshot(world: World, localId?: string): ServerSnapshot {
     serverTime: Date.now(),
     players: [...world.players.values()].map((player) => ({
       ...player,
-      score: player.segments.length,
+      score: Math.floor(player.score),
       segments: player.segments.map((segment) => ({ ...segment }))
     })),
     food: [...world.food.values()].map((pellet) => ({ ...pellet })),
@@ -191,13 +217,15 @@ export function makeSnapshot(world: World, localId?: string): ServerSnapshot {
 
 export function makeLeaderboard(world: World, localId?: string): LeaderboardEntry[] {
   return [...world.players.values()]
-    .sort((a, b) => b.segments.length - a.segments.length)
+    .sort((a, b) => b.score - a.score)
     .slice(0, 10)
     .map((player) => ({
       id: player.id,
       name: player.name,
-      score: player.segments.length,
+      score: Math.floor(player.score),
       color: player.color,
+      hatId: player.hatId,
+      skinId: player.skinId,
       you: player.id === localId
     }));
 }
@@ -311,13 +339,18 @@ function collectFood(world: World, player: PlayerState): void {
   const growth = snakeSizeScale(player);
   const pickupRadius = HEAD_RADIUS * growth + FOOD_RADIUS + 10;
   const pickupRadiusSq = pickupRadius * pickupRadius;
+  let eaten = 0;
   for (const pellet of world.food.values()) {
     if (distanceSq(head, pellet) < pickupRadiusSq) {
       player.score = Math.floor(player.score + pellet.value);
       world.food.delete(pellet.id);
       world.events.push({ type: "food", id: pellet.id, playerId: player.id, value: pellet.value });
-      if (world.food.size < MAX_FOOD) spawnFood(world, 1);
+      eaten += 1;
     }
+  }
+  // Spawn replacements after the loop so the iterator never sees new entries
+  if (eaten > 0 && world.food.size < MAX_FOOD) {
+    spawnFood(world, Math.min(eaten, MAX_FOOD - world.food.size));
   }
 }
 
@@ -376,6 +409,7 @@ function resolveCollisions(world: World, now: number): void {
       continue;
     }
 
+    // Self-collision is disabled — passing through your own body is allowed.
     for (const rival of world.players.values()) {
       if (!rival.alive || rival.id === player.id) continue;
       const rivalGrowth = snakeSizeScale(rival);
@@ -408,22 +442,31 @@ function killPlayer(world: World, player: PlayerState, killerId: string | undefi
   player.lastKillerName = killerId ? world.players.get(killerId)?.name : undefined;
   world.events.push({ type: "death", id: player.id, killerId });
 
-  const dropSegments = player.segments.filter((_, index) => index % 2 === 0);
+  const dropSegments = player.segments;
+  const totalScore = Math.max(0, Math.floor(player.score));
+  if (totalScore <= 0) return;
+
   const availableDrops = Math.max(0, MAX_FOOD_AFTER_DROPS - world.food.size);
   const dropCount = Math.min(dropSegments.length, availableDrops);
-  const dropValue = Math.max(1, Math.floor(Math.floor(player.score) / Math.max(1, dropCount)));
+  if (dropCount <= 0) return;
+
+  const baseValue = Math.floor(totalScore / dropCount);
+  const remainder = totalScore - baseValue * dropCount;
 
   for (let index = 0; index < dropCount; index += 1) {
     const segment = dropSegments[index];
+    const value = index < remainder ? baseValue + 1 : baseValue;
+    if (value <= 0) continue;
     const id = nextId("drop");
     world.food.set(id, {
       id,
       x: segment.x,
       y: segment.y,
       color: player.color,
-      value: dropValue,
+      value,
       driftAngle: world.rng() * Math.PI * 2,
-      driftSpeed: FOOD_DRIFT_SPEED * (0.6 + world.rng() * 0.8)
+      driftSpeed: FOOD_DRIFT_SPEED * (0.6 + world.rng() * 0.8),
+      kind: "drop"
     });
   }
 }
@@ -449,30 +492,128 @@ function spawnFood(world: World, count: number): void {
   }
 }
 
+const BOT_SKINS = SNAKE_SKINS.filter((s) => s.id !== "rainbow" && s.id !== "lotus");
+
+const BOT_PROFILE_POOL: BotProfile[] = ["hunter", "grazer", "grazer", "coward", "wall-hugger"];
+
+function pickBotProfile(world: World): BotProfile {
+  return BOT_PROFILE_POOL[Math.floor(world.rng() * BOT_PROFILE_POOL.length)];
+}
+
 function ensureBots(world: World): void {
-  const needed = Math.max(0, MIN_ACTIVE_SNAKES - world.players.size);
+  // Scale bot population: enough to keep humans busy, capped at MAX_ACTIVE_SNAKES.
+  const players = [...world.players.values()];
+  const humans = players.filter((p) => !p.bot).length;
+  const targetTotal = Math.min(
+    MAX_ACTIVE_SNAKES,
+    Math.max(MIN_ACTIVE_SNAKES, humans + Math.max(humans * TARGET_BOTS_PER_HUMAN, MIN_ACTIVE_SNAKES))
+  );
+  // If a human leaves, extra bots stay until they die (they don't get auto-removed mid-life).
+  const needed = Math.max(0, targetTotal - players.length);
   for (let i = 0; i < needed; i += 1) {
     const name = BOT_NAMES[(world.players.size + i) % BOT_NAMES.length];
-    createPlayer(world, nextId("bot"), name, true, SNAKE_SKINS[(world.players.size + i) % SNAKE_SKINS.length].id);
+    const id = nextId("bot");
+    createPlayer(world, id, name, true, BOT_SKINS[(world.players.size + i) % BOT_SKINS.length].id);
+    world.botProfiles.set(id, pickBotProfile(world));
+  }
+
+  // If we're way over the target (e.g. lots of humans left), retire extra dead bots
+  // so we don't keep respawning them forever.
+  if (players.length > targetTotal) {
+    const deadBots = players.filter((p) => p.bot && !p.alive);
+    const removeCount = Math.min(deadBots.length, players.length - targetTotal);
+    for (let i = 0; i < removeCount; i += 1) {
+      removePlayer(world, deadBots[i].id);
+    }
   }
 }
 
-function updateBotInput(world: World, player: PlayerState): ClientInput {
+function nearestThreat(world: World, player: PlayerState): { rival: PlayerState; distance: number } | undefined {
   const head = player.segments[0];
-  let target: Vec2 | undefined;
-  let nearest = Number.POSITIVE_INFINITY;
+  let best: { rival: PlayerState; distance: number } | undefined;
+  for (const rival of world.players.values()) {
+    if (!rival.alive || rival.id === player.id) continue;
+    const d = distance(head, rival.segments[0]);
+    if (!best || d < best.distance) best = { rival, distance: d };
+  }
+  return best;
+}
 
+function nearestFood(world: World, player: PlayerState): { pellet: Vec2; distance: number } | undefined {
+  const head = player.segments[0];
+  let best: { pellet: Vec2; distance: number } | undefined;
   for (const pellet of world.food.values()) {
     const d = distance(head, pellet);
-    if (d < nearest) {
-      nearest = d;
-      target = pellet;
+    if (!best || d < best.distance) best = { pellet, distance: d };
+  }
+  return best;
+}
+
+function updateBotInput(world: World, player: PlayerState): ClientInput {
+  const profile = world.botProfiles.get(player.id) ?? "grazer";
+  const head = player.segments[0];
+  const jitter = (world.rng() - 0.5) * 0.32;
+
+  // Wall avoidance: every bot tries not to die at the wall
+  const wallMargin = 220;
+  let wallNudge: { x: number; y: number } | undefined;
+  if (head.x < wallMargin) wallNudge = { x: 1, y: 0 };
+  else if (head.x > WORLD_WIDTH - wallMargin) wallNudge = { x: -1, y: 0 };
+  if (head.y < wallMargin) wallNudge = wallNudge ? { x: wallNudge.x, y: 1 } : { x: 0, y: 1 };
+  else if (head.y > WORLD_HEIGHT - wallMargin) wallNudge = wallNudge ? { x: wallNudge.x, y: -1 } : { x: 0, y: -1 };
+
+  let target: Vec2 | undefined;
+  let shouldBoost = false;
+
+  switch (profile) {
+    case "hunter": {
+      // Chase smaller snakes; boost if close and bigger
+      const threat = nearestThreat(world, player);
+      if (threat && threat.rival.segments.length < player.segments.length * 0.85 && threat.distance < 720) {
+        target = threat.rival.segments[0];
+        shouldBoost = threat.distance < 360 && player.segments.length > START_LENGTH + 20;
+      } else {
+        target = nearestFood(world, player)?.pellet;
+      }
+      break;
+    }
+    case "coward": {
+      // Run away from any threat within 360 px; otherwise eat food
+      const threat = nearestThreat(world, player);
+      if (threat && threat.distance < 360) {
+        target = { x: head.x - (threat.rival.segments[0].x - head.x), y: head.y - (threat.rival.segments[0].y - head.y) };
+        shouldBoost = threat.distance < 200; // panic boost
+      } else {
+        target = nearestFood(world, player)?.pellet;
+      }
+      break;
+    }
+    case "wall-hugger": {
+      // Drift around the perimeter clockwise; eat food incidentally
+      const t = world.tick * 0.0008;
+      const ringR = Math.min(WORLD_WIDTH, WORLD_HEIGHT) * 0.36;
+      target = {
+        x: WORLD_WIDTH / 2 + Math.cos(t) * ringR,
+        y: WORLD_HEIGHT / 2 + Math.sin(t) * ringR
+      };
+      const nf = nearestFood(world, player);
+      if (nf && nf.distance < 220) target = nf.pellet;
+      break;
+    }
+    case "grazer":
+    default: {
+      target = nearestFood(world, player)?.pellet;
+      break;
     }
   }
 
-  const jitter = (world.rng() - 0.5) * 0.42;
+  if (wallNudge) {
+    target = { x: head.x + wallNudge.x * 400, y: head.y + wallNudge.y * 400 };
+  }
+
   const heading = target ? Math.atan2(target.y - head.y, target.x - head.x) + jitter : player.heading + jitter;
-  return { heading, boosting: nearest > 360 && player.segments.length > START_LENGTH + 8 && world.rng() > 0.62 };
+  // Idle boost only for hunters / cowards under threat
+  return { heading, boosting: shouldBoost && player.boost > 20 };
 }
 
 function snakeSizeScale(player: PlayerState): number {
@@ -482,10 +623,6 @@ function snakeSizeScale(player: PlayerState): number {
   return 1.0 + eased * 1.6;
 }
 
-function sanitizeName(name: string, fallback: string): string {
-  const clean = name.replace(/[^\w\s-]/g, "").trim().slice(0, 16);
-  return clean || fallback;
-}
 
 function nextId(prefix: string): string {
   entityCounter += 1;

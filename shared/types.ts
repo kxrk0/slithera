@@ -37,6 +37,9 @@ export type FoodPellet = Vec2 & {
   value: number;
   driftAngle: number;
   driftSpeed: number;
+  // "drop" = chunk dropped by a dead snake (rendered as flesh, not pellet).
+  // Omitted/undefined = ordinary food pellet.
+  kind?: "drop";
 };
 
 export type LeaderboardEntry = {
@@ -44,6 +47,8 @@ export type LeaderboardEntry = {
   name: string;
   score: number;
   color: string;
+  hatId?: string;
+  skinId?: string;
   you?: boolean;
 };
 
@@ -52,11 +57,14 @@ export type ClientInput = {
   boosting: boolean;
 };
 
+export type EmoteId = "wave" | "laugh" | "skull" | "fire" | "heart" | "shock";
+
 export type ClientMessage =
-  | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string; hatId?: string }
+  | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string; hatId?: string; uid?: string }
   | { type: "input"; input: ClientInput; seq: number }
   | { type: "ping"; nonce: number }
-  | { type: "respawn" };
+  | { type: "respawn" }
+  | { type: "emote"; emoteId: EmoteId };
 
 export type ServerSnapshot = {
   type: "snapshot";
@@ -71,7 +79,8 @@ export type GameEvent =
   | { type: "joined"; id: EntityId; name: string }
   | { type: "death"; id: EntityId; killerId?: EntityId }
   | { type: "food"; id: EntityId; playerId: EntityId; value: number }
-  | { type: "respawned"; id: EntityId };
+  | { type: "respawned"; id: EntityId }
+  | { type: "emote"; playerId: EntityId; emoteId: EmoteId };
 
 export type ServerMessage =
   | { type: "welcome"; id: EntityId; snapshot: ServerSnapshot }
