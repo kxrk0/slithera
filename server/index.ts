@@ -8,6 +8,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { SNAPSHOT_RATE, TICK_RATE } from "../shared/constants.js";
 import { applyInput, createPlayer, createWorld, makeSnapshot, removePlayer, respawn, stepWorld } from "../shared/simulation.js";
 import type { ClientMessage, ServerMessage } from "../shared/types.js";
+import { isDevUid } from "../shared/exclusive.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = __dirname.includes(`dist-server${path.sep}server`)
@@ -304,6 +305,81 @@ const server = createServer(async (request, response) => {
 
 const wss = new WebSocketServer({ server, path: "/ws" });
 
+// Spectator WebSocket — dev-only, invisible to regular players
+const spectators = new Set<WebSocket>();
+
+const wssSpectate = new WebSocketServer({ server, path: "/ws-spectate" });
+wssSpectate.on("connection", (socket) => {
+  let authed = false;
+
+  socket.on("message", (raw) => {
+    const text = raw.toString().slice(0, 512);
+    let msg: Record<string, unknown>;
+    try { msg = JSON.parse(text) as Record<string, unknown>; } catch { socket.close(); return; }
+
+    if (!authed) {
+      if (msg.type !== "spectate_auth" || !isDevUid(msg.uid as string)) {
+        socket.close(1008, "Unauthorized");
+        return;
+      }
+      authed = true;
+      spectators.add(socket);
+      socket.send(JSON.stringify({ type: "spectate_ok" }));
+      // Send initial snapshot immediately
+      socket.send(JSON.stringify(makeSnapshot(world)));
+      log("spectator.connect");
+      return;
+    }
+
+    // Admin actions (authed dev only)
+    if (msg.type === "admin_kick") {
+      const targetId = String(msg.targetId ?? "");
+      const sock = playerSockets.get(targetId);
+      if (sock) { send(sock, { type: "error", message: "Kicked by admin." }); sock.close(1008, "Kicked"); }
+      socket.send(JSON.stringify({ type: "admin_result", ok: true, action: "kick", targetId }));
+      log("admin.kick", { targetId });
+    } else if (msg.type === "admin_broadcast") {
+      const broadcastText = String(msg.text ?? "").trim().slice(0, 200);
+      if (broadcastText) {
+        const now = Date.now();
+        broadcast({ type: "chat_message", message: { id: `admin_${now}`, playerId: "admin", name: "[SERVER]", color: "#d4a843", text: broadcastText, scope: "global", ts: now } });
+        log("admin.broadcast", { text: broadcastText });
+      }
+      socket.send(JSON.stringify({ type: "admin_result", ok: true, action: "broadcast" }));
+    } else if (msg.type === "admin_ban") {
+      const uid = String(msg.uid ?? "").trim();
+      const ip = String(msg.ip ?? "").trim();
+      if (uid) bannedUids.add(uid);
+      if (ip) bannedIps.add(ip);
+      for (const [playerId, sock] of playerSockets) {
+        const state = socketStates.get(sock);
+        if ((uid && playerUids.get(playerId) === uid) || (ip && state?.ip === ip)) {
+          send(sock, { type: "error", message: "Banned." }); sock.close(1008, "Banned");
+        }
+      }
+      log("admin.ban", { uid: uid || null, ip: ip || null });
+      socket.send(JSON.stringify({ type: "admin_result", ok: true, action: "ban" }));
+    } else if (msg.type === "admin_ban_player") {
+      // Ban by playerId — server looks up the UID internally
+      const targetId = String(msg.targetId ?? "").trim();
+      const uid = playerUids.get(targetId);
+      const sock = playerSockets.get(targetId);
+      if (uid) bannedUids.add(uid);
+      if (sock) {
+        send(sock, { type: "error", message: "Banned." });
+        sock.close(1008, "Banned");
+      }
+      log("admin.ban", { targetId, uid: uid ?? null });
+      socket.send(JSON.stringify({ type: "admin_result", ok: true, action: "ban", targetId, uid: uid ?? null }));
+    }
+  });
+
+  socket.on("close", () => {
+    spectators.delete(socket);
+    if (authed) log("spectator.disconnect");
+  });
+});
+
 wss.on("connection", (socket, request) => {
   const ip = (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
     ?? request.socket.remoteAddress
@@ -548,6 +624,11 @@ const snapshotTimer = setInterval(() => {
     broadcastToParty(code, buildPartyState(code));
     void playerId; // suppress unused-var
   }
+  // Send to spectators
+  const spectatorSnap = JSON.stringify(makeSnapshot(world));
+  for (const ws of spectators) {
+    if (ws.readyState === ws.OPEN) ws.send(spectatorSnap);
+  }
 }, 1000 / SNAPSHOT_RATE);
 
 // Periodic metric snapshot — useful for fly logs/grafana
@@ -593,6 +674,10 @@ function shutdown(): void {
     socket.close(1001, "Server shutting down");
   }
   wss.close();
+  for (const socket of wssSpectate.clients) {
+    socket.close(1001, "Server shutting down");
+  }
+  wssSpectate.close();
 
   server.close(() => {
     process.exit(process.exitCode ?? 0);
