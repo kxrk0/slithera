@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import {
-  HAT_OPTIONS,
   MAX_SEGMENTS,
   SEGMENT_SPACING,
   START_LENGTH,
@@ -13,6 +12,7 @@ import {
 import type { ClientInput, FoodPellet, PlayerState, ServerSnapshot, Vec2 } from "../../../shared/types";
 import { loadSettings } from "../lib/settings";
 import { darkenColor, hslToHex, parseHexColor } from "./render/colors";
+import { drawHat, hatHeight } from "./render/hatRenderer";
 import { drawRopeAccessory } from "./render/ropeIcons";
 import type { RecentEvent } from "./useGameClient";
 
@@ -519,26 +519,25 @@ export function PixiGame({ snapshot, playerId, paused, onInput, onPerf, recentEv
           // Boost trail: spawn streaks from a few rear segments while boosting
           if (player.boosting && player.alive && particles.length < PARTICLE_CAP - 20) {
             const trailColor = parseHexColor(player.color);
-            // 3 trail particles per frame at random positions in the rear half
             for (let n = 0; n < 3; n += 1) {
               const idx = Math.floor(player.segments.length * (0.55 + Math.random() * 0.45));
               const seg = player.segments[Math.min(player.segments.length - 1, idx)];
               if (!seg) continue;
-              // Velocity: backward (opposite heading) with slight spread
               const back = player.heading + Math.PI;
               const spread = (Math.random() - 0.5) * 0.6;
               const sp = 60 + Math.random() * 80;
               particles.push({
-                x: seg.x,
-                y: seg.y,
-                vx: Math.cos(back + spread) * sp,
-                vy: Math.sin(back + spread) * sp,
-                life: 1,
-                decay: 2.4 + Math.random() * 0.6,
-                size: 2 + Math.random() * 2,
-                color: trailColor
+                x: seg.x, y: seg.y,
+                vx: Math.cos(back + spread) * sp, vy: Math.sin(back + spread) * sp,
+                life: 1, decay: 2.4 + Math.random() * 0.6,
+                size: 2 + Math.random() * 2, color: trailColor
               });
             }
+          }
+
+          // Cosmetic trail system — per-player trailId
+          if (player.trailId && player.trailId !== "none" && player.alive && particles.length < PARTICLE_CAP - 10) {
+            spawnTrailParticles(player, particles, parseHexColor(player.color), parseHexColor(player.accent), PARTICLE_CAP);
           }
         }
 
@@ -742,6 +741,67 @@ function drawLotusPetal(g: Graphics, cx: number, cy: number, angle: number, leng
     pts.push(cx + cos * d - pCos * r, cy + sin * d - pSin * r);
   }
   g.poly(pts).fill({ color, alpha });
+}
+
+const TRAIL_COLORS: Record<string, number[]> = {
+  "sparkle":       [0xffffff, 0xffe566, 0xffd0ff],
+  "shadow-trail":  [0x2a1a3a, 0x4a2a5a, 0x110a1a],
+  "fire-trail":    [0xff4500, 0xff8800, 0xffee00],
+  "ice-trail":     [0x88ddff, 0xccf4ff, 0xffffff],
+  "rainbow-trail": [0xff4466, 0xffaa00, 0x44ff88, 0x4499ff, 0xcc44ff],
+  "sakura-trail":  [0xffb7c5, 0xffd0dd, 0xff88a8, 0xfff0f3],
+  "void-trail":    [0x330066, 0x220044, 0x8822cc],
+  "gold-trail":    [0xd4a827, 0xffd24d, 0xffee99],
+  "lightning-trail":[0xffffff, 0xccddff, 0x4499ff, 0x8888ff],
+  "aurora-trail":  [0x00e5ff, 0x40ffcc, 0xe040fb, 0xff80ab],
+};
+
+function spawnTrailParticles(player: PlayerState, particles: Particle[], _baseColor: number, _accent: number, cap: number): void {
+  const tid = player.trailId ?? "";
+  const colors = TRAIL_COLORS[tid] ?? [_baseColor];
+  const tailIdx = Math.min(player.segments.length - 1, Math.floor(player.segments.length * 0.7));
+  const seg = player.segments[tailIdx];
+  if (!seg) return;
+
+  const back = player.heading + Math.PI;
+  let count = 1, size = 1.8, decay = 2.5, speed = 40;
+  let burst = false;
+
+  switch (tid) {
+    case "sparkle":       count = 2; size = 1.2; decay = 3.0; speed = 30; break;
+    case "shadow-trail":  count = 2; size = 2.5; decay = 1.8; speed = 25; break;
+    case "fire-trail":    count = 3; size = 2.2; decay = 2.2; speed = 55; burst = true; break;
+    case "ice-trail":     count = 2; size = 1.8; decay = 2.0; speed = 20; break;
+    case "rainbow-trail": count = 3; size = 2.0; decay = 2.4; speed = 35; break;
+    case "sakura-trail":  count = 2; size = 2.5; decay = 1.5; speed = 18; break;
+    case "void-trail":    count = 2; size = 3.0; decay = 1.6; speed = 15; break;
+    case "gold-trail":    count = 2; size = 1.8; decay = 2.8; speed = 45; break;
+    case "lightning-trail":count = 3; size = 1.4; decay = 3.5; speed = 80; burst = true; break;
+    case "aurora-trail":  count = 3; size = 2.8; decay = 1.4; speed = 22; break;
+  }
+
+  for (let n = 0; n < count; n++) {
+    if (particles.length >= cap) break;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const spread = burst
+      ? (Math.random() - 0.5) * 2.0
+      : (Math.random() - 0.5) * 0.8;
+    const sp = speed * (0.6 + Math.random() * 0.8);
+    // For sakura / void: float upward and sideways rather than backward
+    const angle = tid === "sakura-trail"
+      ? back - Math.PI / 2 + (Math.random() - 0.5) * 1.5
+      : back + spread;
+    particles.push({
+      x: seg.x + (Math.random() - 0.5) * 6,
+      y: seg.y + (Math.random() - 0.5) * 6,
+      vx: Math.cos(angle) * sp,
+      vy: Math.sin(angle) * sp - (tid === "sakura-trail" ? 15 : 0),
+      life: 1,
+      decay: decay + Math.random() * 0.5,
+      size: size * (0.7 + Math.random() * 0.6),
+      color
+    });
+  }
 }
 
 function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, you: boolean, view: WorldBounds, rope: RopeState | undefined, mouthOpen: number): void {
@@ -1053,27 +1113,14 @@ function drawSnake(graphics: Graphics, labels: Container, player: PlayerState, y
       .fill({ color: 0xffffff, alpha: 1 });
   }
 
-  // Hat (sitting just above the head, in screen space — slither.io style)
+  // Hat (drawn procedurally via hatRenderer — no emoji Text objects)
   let hatHeightPx = 0;
   if (player.hatId && player.hatId !== "none") {
-    const hatOption = HAT_OPTIONS.find((h) => h.id === player.hatId);
-    const hatMark = hatOption?.mark;
-    if (hatMark) {
-      const hatFontSize = 22 * growth;
-      const hatOffset = headRadius * 1.05;
-      const hat = new Text({
-        text: hatMark,
-        style: {
-          fontFamily: "system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif",
-          fontSize: hatFontSize,
-          fill: 0xffffff
-        }
-      });
-      hat.anchor.set(0.5, 0.95);
-      hat.position.set(head.x, head.y - hatOffset);
-      labels.addChild(hat);
-      hatHeightPx = hatFontSize + hatOffset * 0.4;
-    }
+    const hatR = 11 * growth;
+    const hatOffset = headRadius * 1.1;
+    const hatCY = head.y - hatOffset - hatR;
+    drawHat(graphics, player.hatId, head.x, hatCY, hatR);
+    hatHeightPx = hatHeight(player.hatId, hatR) + hatOffset * 0.3;
   }
 
   if (rope && player.ropeAccessoryId && player.ropeAccessoryId !== "none") {

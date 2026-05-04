@@ -8,16 +8,15 @@ import { WardrobeModal } from "./WardrobeModal";
 
 type ProfileModalProps = { open: boolean; onClose: () => void };
 
-const ITEM_LOOKUP: Record<string, { name: string; glyph: string }> = MARKET_ITEMS.reduce((acc, item) => {
-  acc[item.id] = { name: item.name, glyph: item.glyph };
+const ITEM_LOOKUP: Record<string, { name: string }> = MARKET_ITEMS.reduce((acc, item) => {
+  acc[item.id] = { name: item.name };
   return acc;
-}, {} as Record<string, { name: string; glyph: string }>);
+}, {} as Record<string, { name: string }>);
 
-function describeItem(id: string): { name: string; glyph: string } {
+function describeItem(id: string): { name: string } {
   if (ITEM_LOOKUP[id]) return ITEM_LOOKUP[id];
-  // fallback for legacy or unknown ids
   const [, raw = id] = id.split(".");
-  return { name: raw.split("-").map((s) => s[0]?.toUpperCase() + s.slice(1)).join(" "), glyph: "✦" };
+  return { name: raw.split("-").map((s) => s[0]?.toUpperCase() + s.slice(1)).join(" ") };
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -126,10 +125,10 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
               {items.length > 0 ? (
                 <div className="wg-profile-modal-items">
                   {items.map((id) => {
-                    const { name, glyph } = describeItem(id);
+                    const { name } = describeItem(id);
                     return (
                       <span key={id} className="wg-inventory-chip" title={id}>
-                        <span aria-hidden="true">{glyph}</span> {name}
+                        <span aria-hidden="true">✦</span> {name}
                       </span>
                     );
                   })}

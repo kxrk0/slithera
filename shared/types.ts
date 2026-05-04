@@ -29,6 +29,7 @@ export type PlayerState = {
   lastKillerName?: string;
   ropeAccessoryId?: string;
   hatId?: string;
+  trailId?: string;
   isDev?: boolean;
   partyId?: string;
 };
@@ -84,7 +85,7 @@ export type PartyMember = {
 };
 
 export type ClientMessage =
-  | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string; hatId?: string; uid?: string }
+  | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string; hatId?: string; trailId?: string; uid?: string }
   | { type: "input"; input: ClientInput; seq: number }
   | { type: "ping"; nonce: number }
   | { type: "respawn" }
