@@ -1993,9 +1993,6 @@ button {
   font-weight: 700;
   color: var(--wg-cream);
   font-variant-numeric: tabular-nums;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 .lb-dev-tag {
   font-family: var(--wg-mono);

@@ -137,13 +137,11 @@ export function GameHud({
                 <span className="rank">{toRoman(index + 1)}</span>
                 <span className="dot" style={{ background: entry.color }} />
                 <span className="name">
+                  {entry.isDev ? <span className="lb-dev-tag" aria-label="Developer">DEV</span> : null}
                   {hatGlyph ? <span className="lb-hat" aria-hidden="true">{hatGlyph}</span> : null}
                   {entry.name}
                 </span>
-                <span className="points">
-                  {formatScore(entry.score)}
-                  {entry.isDev ? <span className="lb-dev-tag" aria-label="Developer">DEV</span> : null}
-                </span>
+                <span className="points">{formatScore(entry.score)}</span>
               </li>
             );
           })}
