@@ -303,12 +303,23 @@ const server = createServer(async (request, response) => {
   }
 });
 
-const wss = new WebSocketServer({ server, path: "/ws" });
+const wss = new WebSocketServer({ noServer: true });
+const wssSpectate = new WebSocketServer({ noServer: true });
+
+// Route upgrade requests manually — avoids ws multi-server path-routing bug
+server.on("upgrade", (request, socket, head) => {
+  const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+  if (pathname === "/ws") {
+    wss.handleUpgrade(request, socket, head, (ws) => wss.emit("connection", ws, request));
+  } else if (pathname === "/ws-spectate") {
+    wssSpectate.handleUpgrade(request, socket, head, (ws) => wssSpectate.emit("connection", ws, request));
+  } else {
+    socket.destroy();
+  }
+});
 
 // Spectator WebSocket — dev-only, invisible to regular players
 const spectators = new Set<WebSocket>();
-
-const wssSpectate = new WebSocketServer({ server, path: "/ws-spectate" });
 wssSpectate.on("connection", (socket) => {
   let authed = false;
 
