@@ -44,11 +44,23 @@ describe("HUD smoke", () => {
         snapshot={snapshot}
         paused={false}
         perf={{ fps: 240, renderer: "webgl" }}
+        chatMessages={[]}
+        party={null}
+        partyInvites={[]}
         onPlay={vi.fn()}
         onPause={vi.fn()}
         onRespawn={vi.fn()}
         onMainMenu={vi.fn()}
         onBoost={vi.fn()}
+        onSendChat={vi.fn()}
+        onSendWhisper={vi.fn()}
+        onCreateParty={vi.fn()}
+        onJoinParty={vi.fn()}
+        onLeaveParty={vi.fn()}
+        onInviteToParty={vi.fn()}
+        onKickFromParty={vi.fn()}
+        onAcceptInvite={vi.fn()}
+        onDismissInvite={vi.fn()}
       />
     );
 

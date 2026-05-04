@@ -30,6 +30,7 @@ export type PlayerState = {
   ropeAccessoryId?: string;
   hatId?: string;
   isDev?: boolean;
+  partyId?: string;
 };
 
 export type FoodPellet = Vec2 & {
@@ -61,12 +62,39 @@ export type ClientInput = {
 
 export type EmoteId = "wave" | "laugh" | "skull" | "fire" | "heart" | "shock";
 
+export type ChatScope = "global" | "party";
+
+export type ChatMessage = {
+  id: string;
+  playerId: string;
+  name: string;
+  color: string;
+  text: string;
+  scope: ChatScope;
+  ts: number;
+};
+
+export type PartyMember = {
+  id: string;
+  name: string;
+  color: string;
+  score: number;
+  alive: boolean;
+};
+
 export type ClientMessage =
   | { type: "join"; name: string; skinId?: string; ropeAccessoryId?: string; hatId?: string; uid?: string }
   | { type: "input"; input: ClientInput; seq: number }
   | { type: "ping"; nonce: number }
   | { type: "respawn" }
-  | { type: "emote"; emoteId: EmoteId };
+  | { type: "emote"; emoteId: EmoteId }
+  | { type: "chat"; text: string; scope: ChatScope }
+  | { type: "party_create" }
+  | { type: "party_join"; code: string }
+  | { type: "party_leave" }
+  | { type: "party_invite"; targetId: string }
+  | { type: "party_kick"; targetId: string }
+  | { type: "whisper"; targetId: string; text: string };
 
 export type ServerSnapshot = {
   type: "snapshot";
@@ -89,4 +117,7 @@ export type ServerMessage =
   | ServerSnapshot
   | { type: "event"; event: GameEvent }
   | { type: "pong"; nonce: number; serverTime: number }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | { type: "chat_message"; message: ChatMessage }
+  | { type: "party_state"; code: string | null; members: PartyMember[] }
+  | { type: "party_invited"; fromId: string; fromName: string; fromColor: string; code: string };

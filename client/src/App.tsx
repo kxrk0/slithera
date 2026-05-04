@@ -55,7 +55,11 @@ export default function App() {
     () => ({ name: name.trim() || "You", skinId, hatId, ropeAccessoryId }),
     [name, skinId, hatId, ropeAccessoryId]
   );
-  const { status, playerId, snapshot, latency, recentEvents, sendInput, respawn, sendEmote } = useGameClient(started, profile);
+  const {
+    status, playerId, snapshot, latency, recentEvents, sendInput, respawn, sendEmote,
+    chatMessages, party, partyInvites,
+    sendChat, sendWhisper, createParty, joinParty, leaveParty, inviteToParty, kickFromParty, dismissPartyInvite
+  } = useGameClient(started, profile);
   const menuSnapshot = useMenuSimulation(!started);
   const player = useMemo(() => snapshot?.players.find((item) => item.id === playerId), [snapshot, playerId]);
 
@@ -185,6 +189,9 @@ export default function App() {
           perf={perf}
           recentEvents={recentEvents}
           rewards={lastReward}
+          chatMessages={chatMessages}
+          party={party}
+          partyInvites={partyInvites}
           onPause={() => setPaused((value) => !value)}
           onPlay={() => {
             setPaused(false);
@@ -202,6 +209,15 @@ export default function App() {
             if (!player) return;
             handleInput({ heading: player.targetHeading, boosting });
           }}
+          onSendChat={sendChat}
+          onSendWhisper={sendWhisper}
+          onCreateParty={createParty}
+          onJoinParty={joinParty}
+          onLeaveParty={leaveParty}
+          onInviteToParty={inviteToParty}
+          onKickFromParty={kickFromParty}
+          onAcceptInvite={joinParty}
+          onDismissInvite={dismissPartyInvite}
         />
       ) : (
         <WarmGoldMenu

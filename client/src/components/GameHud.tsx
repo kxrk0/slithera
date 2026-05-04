@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Crown, Expand, Pause, Play, RotateCcw, Settings } from "lucide-react";
 import { BOOST_MAX, HAT_OPTIONS, ROPE_ACCESSORIES, SNAKE_SKINS, WORLD_HEIGHT, WORLD_WIDTH } from "../../../shared/constants";
-import type { PlayerState, ServerSnapshot } from "../../../shared/types";
-import type { RecentEvent } from "../game/useGameClient";
+import type { ChatMessage, ChatScope, PlayerState, ServerSnapshot } from "../../../shared/types";
+import type { PartyInvite, PartyState, RecentEvent } from "../game/useGameClient";
 import { useLocale } from "../lib/i18n";
 import { SettingsModal } from "./menu/SettingsModal";
+import { PartyPanel } from "./PartyPanel";
+import { ChatPanel } from "./ChatPanel";
+import { ContextMenu, type ContextTarget } from "./ContextMenu";
 
 const HAT_GLYPH: Record<string, string> = HAT_OPTIONS.reduce((acc, h) => {
   acc[h.id] = h.mark;
@@ -33,11 +36,23 @@ type GameHudProps = {
   perf: { fps: number; renderer: string };
   recentEvents?: RecentEvent[];
   rewards?: { coins: number; xp: number } | null;
+  chatMessages: ChatMessage[];
+  party: PartyState | null;
+  partyInvites: PartyInvite[];
   onPause: () => void;
   onPlay: () => void;
   onRespawn: () => void;
   onMainMenu: () => void;
   onBoost: (boosting: boolean) => void;
+  onSendChat: (text: string, scope: ChatScope) => void;
+  onSendWhisper: (targetId: string, text: string) => void;
+  onCreateParty: () => void;
+  onJoinParty: (code: string) => void;
+  onLeaveParty: () => void;
+  onInviteToParty: (targetId: string) => void;
+  onKickFromParty: (targetId: string) => void;
+  onAcceptInvite: (code: string) => void;
+  onDismissInvite: (code: string) => void;
 };
 
 export function GameHud({
@@ -50,11 +65,23 @@ export function GameHud({
   paused,
   recentEvents,
   rewards,
+  chatMessages,
+  party,
+  partyInvites,
   onPause,
   onPlay,
   onRespawn,
   onMainMenu,
-  onBoost
+  onBoost,
+  onSendChat,
+  onSendWhisper,
+  onCreateParty,
+  onJoinParty,
+  onLeaveParty,
+  onInviteToParty,
+  onKickFromParty,
+  onAcceptInvite,
+  onDismissInvite
 }: GameHudProps) {
   const online = snapshot?.players.filter((item) => !item.bot).length ?? 0;
   const active = snapshot?.players.filter((item) => item.alive).length ?? 0;
@@ -65,9 +92,14 @@ export function GameHud({
   const isBoosting = Boolean(player?.boosting);
   const killerName = player && !player.alive ? player.lastKillerName ?? null : null;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextTarget | null>(null);
+  const [whisperTarget, setWhisperTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { t } = useLocale();
-  // Killfeed: derive from server-broadcast death events, resolve names + cosmetics from snapshot
+
+  const partyMemberIds = useMemo(() => new Set(party?.members.map((m) => m.id) ?? []), [party]);
+
+  // Killfeed
   const killfeed = useMemo(() => {
     if (!recentEvents || !snapshot) return [];
     const now = performance.now();
@@ -94,13 +126,23 @@ export function GameHud({
       });
   }, [recentEvents, snapshot]);
 
-  // Force re-render so killfeed entries fade out when their TTL expires
   const [, forceTick] = useState(0);
   useEffect(() => {
     if (killfeed.length === 0) return;
     const id = window.setInterval(() => forceTick((n) => n + 1), 500);
     return () => window.clearInterval(id);
   }, [killfeed.length]);
+
+  const openContextMenu = useCallback((e: React.MouseEvent, pid: string, pName: string, pColor: string) => {
+    if (pid === playerId) return; // can't context-menu yourself
+    e.preventDefault();
+    setContextMenu({ playerId: pid, playerName: pName, playerColor: pColor, x: e.clientX, y: e.clientY });
+  }, [playerId]);
+
+  const handleWhisper = useCallback((targetId: string, name: string) => {
+    setWhisperTarget({ id: targetId, name });
+    // ChatPanel will be opened by user interaction after whisper target is set
+  }, []);
 
   return (
     <div className="wg-hud" aria-live="polite">
@@ -118,6 +160,19 @@ export function GameHud({
         </div>
       </section>
 
+      {/* Party panel — below topleft */}
+      <PartyPanel
+        playerId={playerId}
+        party={party}
+        partyInvites={partyInvites}
+        onCreateParty={onCreateParty}
+        onJoinParty={onJoinParty}
+        onLeaveParty={onLeaveParty}
+        onKick={onKickFromParty}
+        onAcceptInvite={onAcceptInvite}
+        onDismissInvite={onDismissInvite}
+      />
+
       {/* Top-center: brand */}
       <section className="wg-hud-brand" aria-label="Slithera">
         <h1>Slither<span className="amp">&amp;</span>a</h1>
@@ -132,12 +187,18 @@ export function GameHud({
         <ol>
           {leaderboard.slice(0, 8).map((entry, index) => {
             const hatGlyph = entry.hatId && entry.hatId !== "none" ? HAT_GLYPH[entry.hatId] : null;
+            const isPartyMember = partyMemberIds.has(entry.id) && entry.id !== playerId;
             return (
-              <li className={entry.id === playerId ? "you" : ""} key={entry.id}>
+              <li
+                className={`${entry.id === playerId ? "you" : ""}${isPartyMember ? " party-member" : ""}`}
+                key={entry.id}
+                onContextMenu={(e) => openContextMenu(e, entry.id, entry.name, entry.color)}
+              >
                 <span className="rank">{toRoman(index + 1)}</span>
                 <span className="dot" style={{ background: entry.color }} />
                 <span className="name">
                   {entry.isDev ? <span className="lb-dev-tag" aria-label="Developer">DEV</span> : null}
+                  {isPartyMember ? <span className="lb-party-tag" aria-label="Teammate">♦</span> : null}
                   {hatGlyph ? <span className="lb-hat" aria-hidden="true">{hatGlyph}</span> : null}
                   {entry.name}
                 </span>
@@ -159,7 +220,10 @@ export function GameHud({
                 {row.killerName ? (
                   <>
                     <span className="kf-dot" style={{ background: row.killerColor }} />
-                    <span className={`killer ${row.killerId === playerId ? "you" : ""}`}>
+                    <span
+                      className={`killer ${row.killerId === playerId ? "you" : ""}`}
+                      onContextMenu={row.killerId ? (e) => openContextMenu(e, row.killerId!, row.killerName!, row.killerColor) : undefined}
+                    >
                       {killerHatGlyph ? <span className="kf-hat" aria-hidden="true">{killerHatGlyph}</span> : null}
                       {row.killerName}
                     </span>
@@ -169,7 +233,10 @@ export function GameHud({
                   <span className="arrow">✕</span>
                 )}
                 <span className="kf-dot" style={{ background: row.victimColor, opacity: 0.55 }} />
-                <span className={`victim ${row.victimId === playerId ? "you" : ""}`}>
+                <span
+                  className={`victim ${row.victimId === playerId ? "you" : ""}`}
+                  onContextMenu={(e) => openContextMenu(e, row.victimId, row.victimName, row.victimColor)}
+                >
                   {victimHatGlyph ? <span className="kf-hat" aria-hidden="true">{victimHatGlyph}</span> : null}
                   {row.victimName}
                 </span>
@@ -184,6 +251,20 @@ export function GameHud({
         <span className="lbl">{t("hud.length")}</span>
         <strong>{formatScore(length)}</strong>
       </section>
+
+      {/* Chat panel — above score */}
+      <ChatPanel
+        messages={chatMessages}
+        inParty={!!party}
+        onSend={(text, scope) => {
+          if (whisperTarget) {
+            onSendWhisper(whisperTarget.id, text);
+            setWhisperTarget(null);
+          } else {
+            onSendChat(text, scope);
+          }
+        }}
+      />
 
       {/* Bottom-right: minimap + perf */}
       <section className="wg-hud-perf" aria-label="Performance">
@@ -206,9 +287,12 @@ export function GameHud({
           {snapshot?.players.map((item) => {
             const head = item.segments[0];
             if (!head || !item.alive) return null;
+            const isMe = item.id === playerId;
+            // In a party: only show self + party members
+            if (!isMe && party && !partyMemberIds.has(item.id)) return null;
             return (
               <b
-                className={item.id === playerId ? "me" : ""}
+                className={isMe ? "me" : "teammate"}
                 key={item.id}
                 style={{
                   left: `${(head.x / WORLD_WIDTH) * 100}%`,
@@ -231,7 +315,7 @@ export function GameHud({
         </div>
       ) : null}
 
-      {/* Death overlay (full screen) */}
+      {/* Death overlay */}
       {player && !player.alive ? (
         <DeathScreen
           score={score}
@@ -244,7 +328,7 @@ export function GameHud({
         />
       ) : null}
 
-      {/* Pause overlay (only while alive) */}
+      {/* Pause overlay */}
       {paused && player && player.alive ? (
         <PauseScreen
           skinId={player.skinId}
@@ -255,7 +339,7 @@ export function GameHud({
         />
       ) : null}
 
-      {/* Pause/Resume toggle (visible while alive) */}
+      {/* Pause/Resume toggle */}
       {player && player.alive ? (
         <button
           className="wg-hud-pause"
@@ -270,6 +354,16 @@ export function GameHud({
       <button className="wg-hud-fullscreen" type="button" aria-label="Fullscreen" onClick={toggleFullscreen}>
         <Expand size={14} />
       </button>
+
+      {/* Right-click context menu */}
+      <ContextMenu
+        target={contextMenu}
+        canInvite={!!party}
+        onInvite={(id) => { onInviteToParty(id); }}
+        onWhisper={(id, name) => { handleWhisper(id, name); }}
+        onBlock={() => { /* future: block list */ }}
+        onClose={() => setContextMenu(null)}
+      />
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

@@ -437,8 +437,10 @@ function resolveCollisions(world: World, now: number): void {
     }
 
     // Self-collision is disabled — passing through your own body is allowed.
+    // Party teammates also pass through each other.
     for (const rival of world.players.values()) {
       if (!rival.alive || rival.id === player.id) continue;
+      if (player.partyId && rival.partyId === player.partyId) continue;
       const rivalGrowth = snakeSizeScale(rival);
       const collisionRadius = (HEAD_RADIUS * playerGrowth + BODY_RADIUS * rivalGrowth) * COLLISION_LENIENCY;
       const collisionRadiusSq = collisionRadius * collisionRadius;

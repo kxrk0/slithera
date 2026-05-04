@@ -51,8 +51,61 @@ function consumeToken(socket: WebSocket): boolean {
 
 const world = createWorld(Date.now() % 100000);
 const sockets = new Map<WebSocket, string>();
+const playerSockets = new Map<string, WebSocket>(); // reverse map: playerId → socket
 const lastEmoteAt = new Map<string, number>();
+const lastChatAt = new Map<string, number>();
+// party code → ordered list of playerIds (first = leader)
+const parties = new Map<string, string[]>();
+// playerId → party code
+const playerToParty = new Map<string, string>();
 let shuttingDown = false;
+
+function generatePartyCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code: string;
+  do {
+    code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  } while (parties.has(code));
+  return code;
+}
+
+function sendToPlayer(playerId: string, message: ServerMessage): void {
+  const socket = playerSockets.get(playerId);
+  if (socket) send(socket, message);
+}
+
+function broadcastToParty(code: string, message: ServerMessage): void {
+  const members = parties.get(code);
+  if (!members) return;
+  for (const id of members) sendToPlayer(id, message);
+}
+
+function buildPartyState(code: string): ServerMessage {
+  const memberIds = parties.get(code) ?? [];
+  const members = memberIds.map((id) => {
+    const p = world.players.get(id);
+    return { id, name: p?.name ?? "?", color: p?.color ?? "#888", score: Math.floor(p?.score ?? 0), alive: p?.alive ?? false };
+  });
+  return { type: "party_state", code, members };
+}
+
+function leaveParty(playerId: string): void {
+  const code = playerToParty.get(playerId);
+  if (!code) return;
+  playerToParty.delete(playerId);
+  const members = parties.get(code);
+  if (!members) return;
+  const newMembers = members.filter((id) => id !== playerId);
+  const player = world.players.get(playerId);
+  if (player) player.partyId = undefined;
+  if (newMembers.length === 0) {
+    parties.delete(code);
+  } else {
+    parties.set(code, newMembers);
+    broadcastToParty(code, buildPartyState(code));
+  }
+  sendToPlayer(playerId, { type: "party_state", code: null, members: [] });
+}
 const server = createServer(async (request, response) => {
   if (request.url?.startsWith("/health")) {
     const players = [...world.players.values()];
@@ -160,6 +213,7 @@ wss.on("connection", (socket, request) => {
         uid
       );
       sockets.set(socket, player.id);
+      playerSockets.set(player.id, socket);
       log("player.join", {
         playerId: player.id,
         name: player.name,
@@ -193,18 +247,118 @@ wss.on("connection", (socket, request) => {
       if (!validEmotes.has(message.emoteId)) return;
       const last = lastEmoteAt.get(playerId) ?? 0;
       const now = Date.now();
-      if (now - last < 1500) return; // 1.5s cooldown per player
+      if (now - last < 1500) return;
       lastEmoteAt.set(playerId, now);
       world.events.push({ type: "emote", playerId, emoteId: message.emoteId });
       broadcast({ type: "event", event: { type: "emote", playerId, emoteId: message.emoteId } });
+    } else if (message.type === "chat") {
+      const text = String(message.text ?? "").trim().slice(0, 120);
+      if (!text) return;
+      const now = Date.now();
+      const lastChat = lastChatAt.get(playerId) ?? 0;
+      if (now - lastChat < 500) return; // 500ms chat cooldown
+      lastChatAt.set(playerId, now);
+      const player = world.players.get(playerId);
+      if (!player) return;
+      const scope: import("../shared/types.js").ChatScope = message.scope === "party" ? "party" : "global";
+      const chatMsg = {
+        id: `${playerId}_${now}`,
+        playerId,
+        name: player.name,
+        color: player.color,
+        text,
+        scope,
+        ts: now
+      };
+      const envelope: ServerMessage = { type: "chat_message", message: chatMsg };
+      if (scope === "global") {
+        broadcast(envelope);
+      } else {
+        const code = playerToParty.get(playerId);
+        if (code) broadcastToParty(code, envelope);
+      }
+    } else if (message.type === "whisper") {
+      const text = String(message.text ?? "").trim().slice(0, 120);
+      if (!text) return;
+      const now = Date.now();
+      const lastChat = lastChatAt.get(playerId) ?? 0;
+      if (now - lastChat < 500) return;
+      lastChatAt.set(playerId, now);
+      const player = world.players.get(playerId);
+      const target = world.players.get(message.targetId);
+      if (!player || !target || target.bot) return;
+      const whisperMsg = {
+        id: `${playerId}_${now}`,
+        playerId,
+        name: player.name,
+        color: player.color,
+        text,
+        scope: "global" as const,
+        ts: now
+      };
+      sendToPlayer(message.targetId, { type: "chat_message", message: { ...whisperMsg, scope: "global", text: `[whisper] ${text}` } });
+      send(socket, { type: "chat_message", message: { ...whisperMsg, text: `[→ ${target.name}] ${text}` } });
+    } else if (message.type === "party_create") {
+      leaveParty(playerId); // leave any current party first
+      const code = generatePartyCode();
+      parties.set(code, [playerId]);
+      playerToParty.set(playerId, code);
+      const player = world.players.get(playerId);
+      if (player) player.partyId = code;
+      send(socket, buildPartyState(code));
+      log("party.create", { playerId, code });
+    } else if (message.type === "party_join") {
+      const code = String(message.code ?? "").trim().toUpperCase().slice(0, 8);
+      const members = parties.get(code);
+      if (!members) {
+        send(socket, { type: "error", message: "Party not found" });
+        return;
+      }
+      if (members.length >= 4) {
+        send(socket, { type: "error", message: "Party is full" });
+        return;
+      }
+      if (members.includes(playerId)) return;
+      leaveParty(playerId);
+      members.push(playerId);
+      playerToParty.set(playerId, code);
+      const player = world.players.get(playerId);
+      if (player) player.partyId = code;
+      broadcastToParty(code, buildPartyState(code));
+      log("party.join", { playerId, code });
+    } else if (message.type === "party_leave") {
+      leaveParty(playerId);
+    } else if (message.type === "party_invite") {
+      const code = playerToParty.get(playerId);
+      if (!code) return;
+      const target = world.players.get(message.targetId);
+      if (!target || target.bot) return;
+      const player = world.players.get(playerId);
+      sendToPlayer(message.targetId, {
+        type: "party_invited",
+        fromId: playerId,
+        fromName: player?.name ?? "?",
+        fromColor: player?.color ?? "#888",
+        code
+      });
+    } else if (message.type === "party_kick") {
+      const code = playerToParty.get(playerId);
+      if (!code) return;
+      const members = parties.get(code);
+      if (!members || members[0] !== playerId) return; // only leader can kick
+      if (message.targetId === playerId) return; // can't kick yourself
+      leaveParty(message.targetId);
     }
   });
 
   socket.on("close", () => {
     const playerId = sockets.get(socket);
     if (playerId) {
+      leaveParty(playerId);
       removePlayer(world, playerId);
       lastEmoteAt.delete(playerId);
+      lastChatAt.delete(playerId);
+      playerSockets.delete(playerId);
       log("player.leave", { playerId, humans: [...world.players.values()].filter((p) => !p.bot).length });
     } else {
       log("ws.disconnect", { ip });
@@ -230,6 +384,14 @@ const snapshotTimer = setInterval(() => {
     if (socket.readyState === socket.OPEN) {
       send(socket, makeSnapshot(world, playerId));
     }
+  }
+  // Push party score updates so member panels stay live
+  const seen = new Set<string>();
+  for (const [playerId, code] of playerToParty) {
+    if (seen.has(code)) continue;
+    seen.add(code);
+    broadcastToParty(code, buildPartyState(code));
+    void playerId; // suppress unused-var
   }
 }, 1000 / SNAPSHOT_RATE);
 
