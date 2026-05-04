@@ -1,0 +1,23 @@
+services:
+  # nginx — always running, serves static files + proxies WS to game
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - game
+    restart: always
+
+  # game — authoritative WS server, can restart freely without breaking the site
+  game:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    restart: unless-stopped
